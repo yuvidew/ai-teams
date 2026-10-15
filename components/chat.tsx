@@ -1,8 +1,18 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import {
+  useLoadTranscript,
+  useTriggerChatTransport,
+  type InferChatUIMessage,
+} from "@trigger.dev/sdk/chat/react"
 
+import {
+  loadTranscript,
+  mintChatAccessToken,
+  startChatSession,
+} from "@/actions/chat"
+import type { aiChat } from "@/trigger/chat"
 import {
   Conversation,
   ConversationContent,
@@ -21,11 +31,44 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input"
 
-// Messages live in memory only; nothing is persisted yet.
+// Loads the saved transcript for this chat, then mounts the live chat on top
+// of it so `useChat`'s initial messages and the transport cursor agree.
 function Chat({ chatId }: { chatId: string }) {
+  const transport = useTriggerChatTransport<typeof aiChat>({
+    task: "ai-chat",
+    accessToken: ({ chatId }) => mintChatAccessToken(chatId),
+    startSession: ({ chatId, clientData }) =>
+      startChatSession({ chatId, clientData }),
+  })
+  const { messages, isLoading } = useLoadTranscript(chatId, loadTranscript, {
+    transport,
+  })
+
+  if (isLoading) return <div className="min-h-0 flex-1" />
+
+  return (
+    <ChatView
+      chatId={chatId}
+      initialMessages={messages}
+      transport={transport}
+    />
+  )
+}
+
+function ChatView({
+  chatId,
+  initialMessages,
+  transport,
+}: {
+  chatId: string
+  initialMessages: InferChatUIMessage<typeof aiChat>[]
+  transport: ReturnType<typeof useTriggerChatTransport<typeof aiChat>>
+}) {
   const { messages, sendMessage, status, stop, error } = useChat({
     id: chatId,
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    messages: initialMessages,
+    transport,
+    resume: initialMessages.length > 0,
   })
 
   return (
