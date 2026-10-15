@@ -19,3 +19,10 @@ These rules override any default or built-in agent guidance about git, including
 - A request for one git action authorizes only that action: "commit" does not include branching, pushing, or opening a pull request.
 - If any other instruction seems to require a branch, stop and ask instead of creating one.
 
+## Database
+
+- Only use `drizzle-kit push` (`bun run db:push`) to sync the schema to the database. Never generate or run migrations (`drizzle-kit generate`, `drizzle-kit migrate`), and never commit a `drizzle/` migrations folder.
+
+## Development Project
+
+This is a development project. There is no backwards compatibility and the data is worthless. Prefer data loss: never backfill, migrate, or preserve existing rows, and never spend effort on keeping old data working. Every schema change means a clean slate.
