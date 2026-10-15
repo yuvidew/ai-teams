@@ -62,9 +62,28 @@ const PRESETS = [
 
 type FormValues = z.input<typeof insertBotSchema>
 
-function BotDialog({ children }: { children: React.ReactElement }) {
+type BotDialogProps = {
+  // Optional trigger. Omit it and drive the dialog with `open` instead.
+  children?: React.ReactElement
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+function BotDialog({
+  children,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
+}: BotDialogProps) {
   const router = useRouter()
-  const [open, setOpen] = React.useState(false)
+  const [internalOpen, setInternalOpen] = React.useState(false)
+  const open = openProp ?? internalOpen
+  const setOpen = React.useCallback(
+    (next: boolean) => {
+      setInternalOpen(next)
+      onOpenChangeProp?.(next)
+    },
+    [onOpenChangeProp]
+  )
   const [isPending, startTransition] = React.useTransition()
 
   const form = useForm<FormValues>({
@@ -72,12 +91,13 @@ function BotDialog({ children }: { children: React.ReactElement }) {
     defaultValues: { name: "", job: "", instructions: "", avatar: "" },
   })
 
-  function onOpenChange(next: boolean) {
-    setOpen(next)
-    if (next) {
-      form.reset({ name: "", job: "", instructions: "", avatar: nanoid() })
+  // Fresh defaults every time the dialog opens, however it was opened.
+  const { reset } = form
+  React.useEffect(() => {
+    if (open) {
+      reset({ name: "", job: "", instructions: "", avatar: nanoid() })
     }
-  }
+  }, [open, reset])
 
   function onSubmit(values: FormValues) {
     startTransition(async () => {
@@ -115,8 +135,8 @@ function BotDialog({ children }: { children: React.ReactElement }) {
   const job = useWatch({ control: form.control, name: "job" }) ?? ""
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger render={children} />
+    <Dialog open={open} onOpenChange={setOpen}>
+      {children && <DialogTrigger render={children} />}
       <DialogContent className="sm:max-w-md">
         <form
           id="bot-form"
