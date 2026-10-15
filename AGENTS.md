@@ -69,3 +69,19 @@ thing:
 Only JavaScript and the HTTP API have a pre-10 form. The other six cores were
 released in 2026 and never had one, so any older-looking PHP, Python, Rust, Go,
 Dart or C# API attributed to DiceBear is invented rather than outdated.
+
+## Forms
+
+Build every form with this stack: `react-hook-form` + `zod` (`zodResolver` from `@hookform/resolvers/zod`) + shadcn `Field` composition. Mutations go through a server action.
+
+- **Schema comes from the database table.** Derive the zod schema from the Drizzle table in `db/schema.ts` with `createInsertSchema` (`drizzle-zod`), refine it there (trim, min/max, messages), and `.pick()` only the fields the client may set. Never hand-write a second schema that duplicates the table. Never expose `id`, `userId`, or other server-owned columns to the client.
+- **Same schema on both sides.** The form resolver and the server action both parse with that one exported schema. The action must re-validate with `safeParse`; never trust client input.
+- **Server actions live in `actions/<entity>.ts`** (`"use server"`). Take `input: unknown`, get the user with Clerk `auth()` from `@clerk/nextjs/server`, and return early if there is no `userId`. Take `userId` from Clerk, never from the client. Return a result object (`{ success: true, ... } | { success: false, error }`) instead of throwing for expected failures. Call `revalidatePath` after a write.
+- **Form layout uses shadcn composition.** `FieldGroup` > `Field` > `FieldLabel` + control + `FieldError`, wired with `Controller`. Set `data-invalid` on `Field` and `aria-invalid` on the control. Use `Input` / `Textarea`, `ToggleGroup` for small option sets (2-7 choices), and `Button` with `data-icon` for icons. No raw `div` + `space-y-*` form layouts.
+- **Use `useWatch`, not `form.watch()`.** `watch()` breaks React Compiler memoization and fails lint (`react-hooks/incompatible-library`).
+- **Show every outcome.** Success and failure both toast with `toast.add({ type, title, description })` from `@/components/ui/toast` (Base UI project; `Toaster` is mounted in `app/layout.tsx`). Also set `form.setError("root", ...)` on server errors, wrap the action call in `try/catch` for thrown/network errors, keep the dialog open on failure, and only close and `router.refresh()` on success.
+- **Pending state.** Wrap the submit in `useTransition` and disable the submit button while pending.
+- **Dialog forms.** Put the `<form>` inside `DialogContent` with `className="contents"`, reset the form with fresh defaults each time the dialog opens, and accept the trigger as `children` (`<DialogTrigger render={children} />`) so server components can pass the button in.
+- **Presets and suggestion chips** should fill all related fields (not just one) and stay editable afterwards.
+- **Optional text fields:** an empty string becomes `null` in the server action before the insert.
+- **Generated values** (ids, avatar seeds) use `nanoid` and are created client-side when the user needs to preview or shuffle them, otherwise by the table's `$defaultFn`.
