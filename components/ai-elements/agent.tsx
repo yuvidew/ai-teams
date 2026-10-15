@@ -1,33 +1,33 @@
-"use client";
+"use client"
 
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import type { Tool } from "ai";
-import { BotIcon } from "lucide-react";
-import type { ComponentProps } from "react";
-import { memo } from "react";
+} from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import type { Tool } from "ai"
+import { BotIcon } from "lucide-react"
+import type { ComponentProps } from "react"
+import { memo } from "react"
 
-import { CodeBlock } from "./code-block";
+import { CodeBlock } from "./code-block"
 
-export type AgentProps = ComponentProps<"div">;
+export type AgentProps = ComponentProps<"div">
 
 export const Agent = memo(({ className, ...props }: AgentProps) => (
   <div
     className={cn("not-prose w-full rounded-md border", className)}
     {...props}
   />
-));
+))
 
 export type AgentHeaderProps = ComponentProps<"div"> & {
-  name: string;
-  model?: string;
-};
+  name: string
+  model?: string
+}
 
 export const AgentHeader = memo(
   ({ className, name, model, ...props }: AgentHeaderProps) => (
@@ -40,7 +40,7 @@ export const AgentHeader = memo(
     >
       <div className="flex items-center gap-2">
         <BotIcon className="size-4 text-muted-foreground" />
-        <span className="font-medium text-sm">{name}</span>
+        <span className="text-sm font-medium">{name}</span>
         {model && (
           <Badge className="font-mono text-xs" variant="secondary">
             {model}
@@ -49,52 +49,52 @@ export const AgentHeader = memo(
       </div>
     </div>
   )
-);
+)
 
-export type AgentContentProps = ComponentProps<"div">;
+export type AgentContentProps = ComponentProps<"div">
 
 export const AgentContent = memo(
   ({ className, ...props }: AgentContentProps) => (
     <div className={cn("space-y-4 p-4 pt-0", className)} {...props} />
   )
-);
+)
 
 export type AgentInstructionsProps = ComponentProps<"div"> & {
-  children: string;
-};
+  children: string
+}
 
 export const AgentInstructions = memo(
   ({ className, children, ...props }: AgentInstructionsProps) => (
     <div className={cn("space-y-2", className)} {...props}>
-      <span className="font-medium text-muted-foreground text-sm">
+      <span className="text-sm font-medium text-muted-foreground">
         Instructions
       </span>
-      <div className="rounded-md bg-muted/50 p-3 text-muted-foreground text-sm">
+      <div className="rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">
         <p>{children}</p>
       </div>
     </div>
   )
-);
+)
 
-export type AgentToolsProps = ComponentProps<typeof Accordion>;
+export type AgentToolsProps = ComponentProps<typeof Accordion>
 
 export const AgentTools = memo(({ className, ...props }: AgentToolsProps) => (
   <div className={cn("space-y-2", className)}>
-    <span className="font-medium text-muted-foreground text-sm">Tools</span>
+    <span className="text-sm font-medium text-muted-foreground">Tools</span>
     <Accordion className="rounded-md border" {...props} />
   </div>
-));
+))
 
 export type AgentToolProps = ComponentProps<typeof AccordionItem> & {
-  tool: Tool;
-};
+  tool: Tool
+}
 
 export const AgentTool = memo(
   ({ className, tool, value, ...props }: AgentToolProps) => {
     const schema =
       "jsonSchema" in tool && tool.jsonSchema
         ? tool.jsonSchema
-        : tool.inputSchema;
+        : tool.inputSchema
 
     return (
       <AccordionItem
@@ -103,7 +103,9 @@ export const AgentTool = memo(
         {...props}
       >
         <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
-          {tool.description ?? "No description"}
+          {typeof tool.description === "string"
+            ? tool.description
+            : "No description"}
         </AccordionTrigger>
         <AccordionContent className="px-3 pb-3">
           <div className="rounded-md bg-muted/50">
@@ -111,18 +113,18 @@ export const AgentTool = memo(
           </div>
         </AccordionContent>
       </AccordionItem>
-    );
+    )
   }
-);
+)
 
 export type AgentOutputProps = ComponentProps<"div"> & {
-  schema: string;
-};
+  schema: string
+}
 
 export const AgentOutput = memo(
   ({ className, schema, ...props }: AgentOutputProps) => (
     <div className={cn("space-y-2", className)} {...props}>
-      <span className="font-medium text-muted-foreground text-sm">
+      <span className="text-sm font-medium text-muted-foreground">
         Output Schema
       </span>
       <div className="rounded-md bg-muted/50">
@@ -130,12 +132,12 @@ export const AgentOutput = memo(
       </div>
     </div>
   )
-);
+)
 
-Agent.displayName = "Agent";
-AgentHeader.displayName = "AgentHeader";
-AgentContent.displayName = "AgentContent";
-AgentInstructions.displayName = "AgentInstructions";
-AgentTools.displayName = "AgentTools";
-AgentTool.displayName = "AgentTool";
-AgentOutput.displayName = "AgentOutput";
+Agent.displayName = "Agent"
+AgentHeader.displayName = "AgentHeader"
+AgentContent.displayName = "AgentContent"
+AgentInstructions.displayName = "AgentInstructions"
+AgentTools.displayName = "AgentTools"
+AgentTool.displayName = "AgentTool"
+AgentOutput.displayName = "AgentOutput"

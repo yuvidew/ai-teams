@@ -85,3 +85,9 @@ Build every form with this stack: `react-hook-form` + `zod` (`zodResolver` from 
 - **Presets and suggestion chips** should fill all related fields (not just one) and stay editable afterwards.
 - **Optional text fields:** an empty string becomes `null` in the server action before the insert.
 - **Generated values** (ids, avatar seeds) use `nanoid` and are created client-side when the user needs to preview or shuffle them, otherwise by the table's `$defaultFn`.
+
+<!-- TRIGGER.DEV SKILLS START -->
+## Trigger.dev agent skills
+
+This project has Trigger.dev agent skills installed in `.agents/skills/`. Before writing or changing Trigger.dev code (background tasks, scheduled tasks, realtime, or chat.agent AI agents), load the most relevant skill: `trigger-authoring-chat-agent`, `trigger-authoring-tasks`, `trigger-chat-agent-advanced`, `trigger-realtime-and-frontend`.
+<!-- TRIGGER.DEV SKILLS END -->

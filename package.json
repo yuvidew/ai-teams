@@ -30,6 +30,7 @@
     "@streamdown/code": "^2.0.0",
     "@streamdown/math": "^1.0.3",
     "@streamdown/mermaid": "^1.0.3",
+    "@trigger.dev/sdk": "4.7.4",
     "@xyflow/react": "^12.12.0",
     "ai": "^7.0.141",
     "ansi-to-react": "^6.2.6",
@@ -64,6 +65,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@trigger.dev/build": "4.7.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
