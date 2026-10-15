@@ -2,13 +2,23 @@
 
 import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ShuffleIcon } from "lucide-react"
+import { ShuffleIcon, Trash2Icon } from "lucide-react"
 import { nanoid } from "nanoid"
 import { useRouter } from "next/navigation"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import type { z } from "zod"
 
-import { createBot } from "@/actions/bot"
+import { createBot, deleteBot, updateBot } from "@/actions/bot"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -62,7 +72,17 @@ const PRESETS = [
 
 type FormValues = z.input<typeof insertBotSchema>
 
+type EditableBot = {
+  id: string
+  name: string
+  job: string
+  instructions: string | null
+  avatar: string
+}
+
 type BotDialogProps = {
+  // Pass a bot to edit it instead of creating a new one.
+  bot?: EditableBot
   // Optional trigger. Omit it and drive the dialog with `open` instead.
   children?: React.ReactElement
   open?: boolean
@@ -70,6 +90,7 @@ type BotDialogProps = {
 }
 
 function BotDialog({
+  bot,
   children,
   open: openProp,
   onOpenChange: onOpenChangeProp,
@@ -85,30 +106,48 @@ function BotDialog({
     [onOpenChangeProp]
   )
   const [isPending, startTransition] = React.useTransition()
+  const [isDeleting, startDeleting] = React.useTransition()
+  const [confirmOpen, setConfirmOpen] = React.useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(insertBotSchema),
     defaultValues: { name: "", job: "", instructions: "", avatar: "" },
   })
 
-  // Fresh defaults every time the dialog opens, however it was opened.
+  // Fresh values every time the dialog opens, however it was opened.
   const { reset } = form
+  const botId = bot?.id
+  const botName = bot?.name
+  const botJob = bot?.job
+  const botInstructions = bot?.instructions
+  const botAvatar = bot?.avatar
   React.useEffect(() => {
-    if (open) {
+    if (!open) return
+
+    if (botId) {
+      reset({
+        name: botName,
+        job: botJob,
+        instructions: botInstructions ?? "",
+        avatar: botAvatar,
+      })
+    } else {
       reset({ name: "", job: "", instructions: "", avatar: nanoid() })
     }
-  }, [open, reset])
+  }, [open, reset, botId, botName, botJob, botInstructions, botAvatar])
 
   function onSubmit(values: FormValues) {
     startTransition(async () => {
       try {
-        const result = await createBot(values)
+        const result = botId
+          ? await updateBot(botId, values)
+          : await createBot(values)
 
         if (!result.success) {
           form.setError("root", { message: result.error })
           toast.add({
             type: "error",
-            title: "Couldn't create bot",
+            title: botId ? "Couldn't save bot" : "Couldn't create bot",
             description: result.error,
           })
           return
@@ -116,15 +155,53 @@ function BotDialog({
 
         toast.add({
           type: "success",
-          title: "Bot created",
-          description: `${values.name.trim()} is ready to go.`,
+          title: botId ? "Bot updated" : "Bot created",
+          description: botId
+            ? `${values.name.trim()} was saved.`
+            : `${values.name.trim()} is ready to go.`,
         })
         setOpen(false)
         router.refresh()
       } catch {
         toast.add({
           type: "error",
-          title: "Couldn't create bot",
+          title: botId ? "Couldn't save bot" : "Couldn't create bot",
+          description: "Something went wrong. Please try again.",
+        })
+      }
+    })
+  }
+
+  function onDelete() {
+    if (!botId) return
+
+    startDeleting(async () => {
+      try {
+        const result = await deleteBot(botId)
+
+        if (!result.success) {
+          toast.add({
+            type: "error",
+            title: "Couldn't delete bot",
+            description: result.error,
+          })
+          return
+        }
+
+        toast.add({
+          type: "success",
+          title: "Bot deleted",
+          description: `${botName} and its chat were removed.`,
+        })
+        setConfirmOpen(false)
+        setOpen(false)
+        // The chat page no longer exists, so leave it.
+        router.push("/")
+        router.refresh()
+      } catch {
+        toast.add({
+          type: "error",
+          title: "Couldn't delete bot",
           description: "Something went wrong. Please try again.",
         })
       }
@@ -144,7 +221,7 @@ function BotDialog({
           className="contents"
         >
           <DialogHeader>
-            <DialogTitle>New bot</DialogTitle>
+            <DialogTitle>{botId ? "Edit bot" : "New bot"}</DialogTitle>
             <DialogDescription>
               Give it a face, a name, and a job to do.
             </DialogDescription>
@@ -267,14 +344,46 @@ function BotDialog({
           </FieldGroup>
 
           <DialogFooter>
+            {botId && (
+              <Button
+                type="button"
+                variant="destructive"
+                className="sm:mr-auto"
+                onClick={() => setConfirmOpen(true)}
+              >
+                <Trash2Icon data-icon="inline-start" />
+                Delete
+              </Button>
+            )}
             <DialogClose render={<Button type="button" variant="outline" />}>
               Cancel
             </DialogClose>
             <Button type="submit" disabled={isPending}>
-              Create bot
+              {botId ? "Save changes" : "Create bot"}
             </Button>
           </DialogFooter>
         </form>
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {botName}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently deletes the bot and its chat. This can&apos;t
+                be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                disabled={isDeleting}
+                onClick={onDelete}
+              >
+                Delete bot
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   )

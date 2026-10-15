@@ -5,7 +5,7 @@ import { UserButton } from "@clerk/nextjs"
 import { formatDistanceToNowStrict } from "date-fns"
 import { PlusIcon, SearchIcon, UsersIcon } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 
 import { BotDialog } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
@@ -93,6 +93,7 @@ export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
   const [searchOpen, setSearchOpen] = React.useState(false)
   const modifierKey = useModifierKey()
   const router = useRouter()
+  const { chatId } = useParams<{ chatId?: string }>()
   const { state, isMobile } = useSidebar()
   // Header buttons only need a label once their text is hidden.
   const tooltipHidden = state !== "collapsed" || isMobile
@@ -205,8 +206,14 @@ export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
               <SidebarMenuItem key={chat.id}>
                 <SidebarMenuButton
                   tooltip={chat.name}
+                  isActive={chat.id === chatId}
                   className="h-auto items-start gap-3 py-2 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
-                  render={<Link href={`/chats/${chat.id}`} />}
+                  render={
+                    <Link
+                      href={`/chats/${chat.id}`}
+                      aria-current={chat.id === chatId ? "page" : undefined}
+                    />
+                  }
                 >
                   <ChatRow chat={chat} />
                 </SidebarMenuButton>
