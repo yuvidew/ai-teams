@@ -2,9 +2,10 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { revalidatePath } from "next/cache"
+import { nanoid } from "nanoid"
 
 import { db } from "@/db"
-import { bots, insertBotSchema } from "@/db/schema"
+import { bots, chatMembers, chats, insertBotSchema } from "@/db/schema"
 
 type CreateBotResult =
   | { success: true; id: string }
@@ -28,12 +29,20 @@ export async function createBot(input: unknown): Promise<CreateBotResult> {
 
   const { instructions, ...values } = parsed.data
 
-  const [bot] = await db
-    .insert(bots)
-    .values({ ...values, instructions: instructions || null, userId })
-    .returning({ id: bots.id })
+  // Ids are generated up front so the three inserts can reference each other
+  // inside a single batch (one round trip, executed atomically).
+  const botId = nanoid()
+  const chatId = nanoid()
+
+  await db.batch([
+    db
+      .insert(bots)
+      .values({ ...values, id: botId, instructions: instructions || null, userId }),
+    db.insert(chats).values({ id: chatId, userId, kind: "direct" }),
+    db.insert(chatMembers).values({ chatId, botId }),
+  ])
 
   revalidatePath("/")
 
-  return { success: true, id: bot.id }
+  return { success: true, id: botId }
 }
