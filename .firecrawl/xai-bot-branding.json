@@ -1,0 +1,135 @@
+{
+  "branding": {
+    "colorScheme": "light",
+    "fonts": [
+      {
+        "family": "xVf",
+        "role": "body"
+      }
+    ],
+    "colors": {
+      "primary": "#0A0A0A",
+      "secondary": "#2563EB",
+      "accent": "#0093A3",
+      "background": "#FFFFFF",
+      "textPrimary": "#0A0A0A",
+      "link": "#0093A3"
+    },
+    "typography": {
+      "fontFamilies": {
+        "primary": "xVf",
+        "heading": "xVf"
+      },
+      "fontStacks": {
+        "heading": [
+          "xVf"
+        ],
+        "body": [
+          "xVf"
+        ],
+        "paragraph": [
+          "xVf"
+        ]
+      },
+      "fontSizes": {
+        "h1": "60px",
+        "h2": "36px",
+        "body": "18px"
+      }
+    },
+    "spacing": {
+      "baseUnit": 4,
+      "borderRadius": "12px"
+    },
+    "components": {
+      "buttonPrimary": {
+        "background": "#0A0A0A",
+        "textColor": "#FFFFFF",
+        "borderRadius": "9999px",
+        "borderRadiusCorners": {
+          "topLeft": "9999px",
+          "topRight": "9999px",
+          "bottomRight": "9999px",
+          "bottomLeft": "9999px"
+        },
+        "shadow": "none"
+      },
+      "buttonSecondary": {
+        "background": "#EDECEA",
+        "textColor": "#0A0A0A",
+        "borderRadius": "9999px",
+        "borderRadiusCorners": {
+          "topLeft": "9999px",
+          "topRight": "9999px",
+          "bottomRight": "9999px",
+          "bottomLeft": "9999px"
+        },
+        "shadow": "none"
+      }
+    },
+    "images": {
+      "logo": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2263%22%20height%3D%2224%22%20viewBox%3D%2240%200%202176%20831%22%20fill%3D%22currentColor%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20class%3D%22h-auto%20w-%5B51px%5D%22%20data-fc-idx%3D%220%22%3E%3Cpath%20d%3D%22M352%20522%2057%20305H308L490%20436Q417%20478%20352%20522ZM766%20831%20545%20668Q619%20612%20670%20576L1018%20831ZM294%20831H40L70%20803Q208%20668%20450.5%20506.5Q693%20345%201145.5%20190Q1598%2035%202216%200Q1995%2019%201684.5%2088.5Q1374%20158%20989%20339Q604%20520%20294%20831Z%22%20style%3D%22fill%3A%20rgb(10%2C%2010%2C%2010)%20!important%3B%22%2F%3E%3C%2Fsvg%3E",
+      "favicon": "https://x.ai/favicon.ico?favicon.2023htx52lx-a.ico?dpl=5b35c887bf3677db001a7d25e35c2bcde5ae024e",
+      "ogImage": "https://x.ai/images/news/introducing-grok-bot-og-2.png",
+      "logoHref": "/"
+    },
+    "personality": {
+      "tone": "modern",
+      "energy": "low",
+      "targetAudience": "developers"
+    },
+    "designSystem": {
+      "framework": "tailwind",
+      "componentLibrary": "shadcn"
+    },
+    "confidence": {
+      "buttons": 1,
+      "colors": 0.7833333333333332,
+      "overall": 0.8916666666666666
+    },
+    "brandName": "SpaceXSI",
+    "logo": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2263%22%20height%3D%2224%22%20viewBox%3D%2240%200%202176%20831%22%20fill%3D%22currentColor%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20class%3D%22h-auto%20w-%5B51px%5D%22%20data-fc-idx%3D%220%22%3E%3Cpath%20d%3D%22M352%20522%2057%20305H308L490%20436Q417%20478%20352%20522ZM766%20831%20545%20668Q619%20612%20670%20576L1018%20831ZM294%20831H40L70%20803Q208%20668%20450.5%20506.5Q693%20345%201145.5%20190Q1598%2035%202216%200Q1995%2019%201684.5%2088.5Q1374%20158%20989%20339Q604%20520%20294%20831Z%22%20style%3D%22fill%3A%20rgb(10%2C%2010%2C%2010)%20!important%3B%22%2F%3E%3C%2Fsvg%3E"
+  },
+  "metadata": {
+    "og:description": "Grok Bot is your team of always-on AI teammates. They have their own computer, use it like you do, and never log off.",
+    "ogImage": "https://x.ai/images/news/introducing-grok-bot-og-2.png",
+    "title": "AI teammates that finish the work | Grok Bot",
+    "og:image": "https://x.ai/images/news/introducing-grok-bot-og-2.png",
+    "twitter:image": "https://x.ai/images/news/introducing-grok-bot-og-2.png",
+    "ogUrl": "https://x.ai/bot",
+    "og:title": "AI teammates that finish the work | Grok Bot",
+    "language": "en",
+    "og:url": "https://x.ai/bot",
+    "twitter:card": "summary_large_image",
+    "twitter:site": "@spacexsi",
+    "og:type": "website",
+    "twitter:description": "Grok Bot is your team of always-on AI teammates. They have their own computer, use it like you do, and never log off.",
+    "description": "Grok Bot is your team of always-on AI teammates. They have their own computer, use it like you do, and never log off.",
+    "ogDescription": "Grok Bot is your team of always-on AI teammates. They have their own computer, use it like you do, and never log off.",
+    "twitter:creator": "@spacexsi",
+    "next-size-adjust": "",
+    "twitter:title": "AI teammates that finish the work | Grok Bot",
+    "ogSiteName": "SpaceXSI",
+    "ogTitle": "AI teammates that finish the work | Grok Bot",
+    "viewport": "width=device-width, height=device-height, initial-scale=1, maximum-scale=1",
+    "og:site_name": "SpaceXSI",
+    "favicon": "https://x.ai/favicon.ico?favicon.2023htx52lx-a.ico?dpl=5b35c887bf3677db001a7d25e35c2bcde5ae024e",
+    "scrapeId": "01a13efe-4efd-7314-a96d-1b9d904c2649",
+    "sourceURL": "https://x.ai/bot",
+    "url": "https://x.ai/bot",
+    "statusCode": 200,
+    "contentType": "text/html; charset=utf-8",
+    "timezone": "America/New_York",
+    "proxyUsed": "basic",
+    "indexId": "c408268c-e0cc-48b6-8f82-d64c25430345",
+    "creditsUsed": 1,
+    "concurrencyLimited": false
+  },
+  "images": [
+    "https://media.x.ai/v1/website/launch-trailer-poster-1a559a65.jpg",
+    "https://media.x.ai/v1/website/cloud-agents-3-5a23ca2f.webp",
+    "https://media.x.ai/v1/website/cloud-agents-1-f6d00cf8.webp",
+    "https://media.x.ai/v1/website/cloud-agents-4-d2fe557a.webp",
+    "https://media.x.ai/v1/website/cloud-agents-2-a4798c0f.webp"
+  ]
+}
