@@ -13,6 +13,7 @@ import {
   startChatSession,
 } from "@/actions/chat"
 import { ChatAvatar } from "@/components/chat-avatar"
+import { Badge } from "@/components/ui/badge"
 import { ToolCall, isToolPart } from "@/components/tool-call"
 import type { ChatBot } from "@/queries/chats"
 import type { aiChat, ChatUIMessage } from "@/trigger/chat"
@@ -78,6 +79,40 @@ function BotOption({ bot }: { bot: ChatBot }) {
   )
 }
 
+type HandoffPart = Extract<
+  ChatUIMessage["parts"][number],
+  { type: "tool-handoff" }
+>
+
+// A bot passing the request on: a one-line note, then the other bot's reply
+// (streamed in as preliminary tool output) with its own avatar.
+function Handoff({ part, bots }: { part: HandoffPart; bots: ChatBot[] }) {
+  const output = part.output
+  const reply = output && "reply" in output ? output : undefined
+  const target = bots.find((bot) => bot.id === reply?.botId)
+
+  return (
+    <>
+      <p className="text-xs text-muted-foreground">
+        {part.input?.botName
+          ? `Handed off to ${part.input.botName}${part.input.reason ? `: ${part.input.reason}` : ""}`
+          : "Handing off…"}
+      </p>
+      {output && "error" in output && (
+        <p className="text-xs text-destructive">{output.error}</p>
+      )}
+      {reply && (
+        <div className="flex items-start gap-3">
+          {target && (
+            <ChatAvatar seed={target.avatar} className="size-8 shrink-0" />
+          )}
+          <MessageResponse>{reply.reply}</MessageResponse>
+        </div>
+      )}
+    </>
+  )
+}
+
 function ChatView({
   chatId,
   bots,
@@ -104,25 +139,88 @@ function ChatView({
     <div className="flex min-h-0 flex-1 flex-col">
       <Conversation className="min-h-0 flex-1">
         <ConversationContent className="mx-auto w-full max-w-3xl">
-          {messages.map((message) => (
-            <Message from={message.role} key={message.id}>
-              <MessageContent>
-                {message.parts.map((part, index) => {
-                  if (part.type === "text") {
-                    return (
-                      <MessageResponse key={index}>{part.text}</MessageResponse>
-                    )
-                  }
+          {messages.map((message, index) => {
+            // The server stamps replies with the answering bot. Failing that
+            // (e.g. while streaming), it is the bot the preceding user message
+            // was addressed to.
+            const authorId =
+              message.metadata?.botId ??
+              messages
+                .slice(0, index)
+                .findLast((previous) => previous.role === "user")?.metadata
+                ?.botId
+            const author =
+              isGroup && message.role === "assistant"
+                ? bots.find((bot) => bot.id === authorId)
+                : undefined
 
-                  if (isToolPart(part)) {
-                    return <ToolCall key={part.toolCallId} part={part} />
-                  }
+            // Which bot a user message was addressed to.
+            const addressee =
+              isGroup && message.role === "user"
+                ? bots.find((bot) => bot.id === message.metadata?.botId)
+                : undefined
 
-                  return null
-                })}
-              </MessageContent>
-            </Message>
-          ))}
+            return (
+              <Message
+                from={message.role}
+                key={message.id}
+                className={author && "flex-row items-start gap-3"}
+              >
+                {author && (
+                  <ChatAvatar
+                    seed={author.avatar}
+                    className="size-8 shrink-0"
+                  />
+                )}
+                <MessageContent>
+                  {message.parts.map((part, index) => {
+                    if (part.type === "text" && addressee) {
+                      // Reads like the user tagged the bot at the start of the line.
+                      return (
+                        <p key={index} className="whitespace-pre-wrap">
+                          <Badge
+                            variant="secondary"
+                            className="mr-1.5 inline-flex max-w-32 pl-0.5 align-middle"
+                          >
+                            <ChatAvatar
+                              seed={addressee.avatar}
+                              className="size-4"
+                            />
+                            <span className="truncate">{addressee.name}</span>
+                          </Badge>
+                          {part.text}
+                        </p>
+                      )
+                    }
+
+                    if (part.type === "text") {
+                      return (
+                        <MessageResponse key={index}>
+                          {part.text}
+                        </MessageResponse>
+                      )
+                    }
+
+                    if (part.type === "tool-handoff") {
+                      return (
+                        <Handoff
+                          key={part.toolCallId}
+                          part={part}
+                          bots={bots}
+                        />
+                      )
+                    }
+
+                    if (isToolPart(part)) {
+                      return <ToolCall key={part.toolCallId} part={part} />
+                    }
+
+                    return null
+                  })}
+                </MessageContent>
+              </Message>
+            )
+          })}
         </ConversationContent>
         <ConversationScrollButton />
         {error && (
@@ -137,7 +235,12 @@ function ChatView({
           if (!text.trim()) return
 
           // Per-message metadata reaches the agent as `clientData` for the turn.
-          sendMessage({ text }, isGroup ? { metadata: { botId } } : undefined)
+          // The user message keeps the addressee too, so a reply can be
+          // attributed even before the server's stamp arrives.
+          sendMessage(
+            isGroup ? { text, metadata: { botId } } : { text },
+            isGroup ? { metadata: { botId } } : undefined
+          )
         }}
       >
         <PromptInputBody>

@@ -30,10 +30,14 @@ import { cn } from "@/lib/utils"
 
 type Part = ChatUIMessage["parts"][number]
 // Only the tool parts of a message; text, reasoning etc. are handled by the chat.
-type ToolPart = Extract<Part, { type: `tool-${string}` }>
+// The handoff tool is rendered by the chat itself, not as a tool row.
+type ToolPart = Exclude<
+  Extract<Part, { type: `tool-${string}` }>,
+  { type: "tool-handoff" }
+>
 
 export const isToolPart = (part: Part): part is ToolPart =>
-  part.type.startsWith("tool-")
+  part.type.startsWith("tool-") && part.type !== "tool-handoff"
 
 const ICONS: Record<ToolPart["type"], LucideIcon> = {
   "tool-bash": TerminalIcon,
