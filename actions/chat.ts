@@ -8,7 +8,7 @@ import {
 } from "@trigger.dev/sdk/ai"
 
 import { getChat } from "@/queries/chats"
-import type { aiChat } from "@/trigger/chat"
+import type { aiChat, ChatUIMessage } from "@/trigger/chat"
 
 const start = chat.createStartSessionAction<typeof aiChat>("ai-chat")
 const load = chat.createLoadTranscriptAction(defaultStorage)
@@ -35,7 +35,14 @@ export async function mintChatAccessToken(chatId: string) {
   })
 }
 
-export async function loadTranscript(params: Parameters<typeof load>[0]) {
+type Transcript = Awaited<ReturnType<typeof load>>
+
+// The stored messages are the agent's own, so they carry its typed tool parts.
+export async function loadTranscript(
+  params: Parameters<typeof load>[0]
+): Promise<Omit<Transcript, "messages"> & { messages: ChatUIMessage[] }> {
   await assertChatOwner(params.chatId)
-  return load(params)
+  const transcript = await load(params)
+
+  return { ...transcript, messages: transcript.messages as ChatUIMessage[] }
 }

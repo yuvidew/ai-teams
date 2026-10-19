@@ -4,7 +4,6 @@ import { useChat } from "@ai-sdk/react"
 import {
   useLoadTranscript,
   useTriggerChatTransport,
-  type InferChatUIMessage,
 } from "@trigger.dev/sdk/chat/react"
 
 import {
@@ -12,7 +11,8 @@ import {
   mintChatAccessToken,
   startChatSession,
 } from "@/actions/chat"
-import type { aiChat } from "@/trigger/chat"
+import { ToolCall, isToolPart } from "@/components/tool-call"
+import type { aiChat, ChatUIMessage } from "@/trigger/chat"
 import {
   Conversation,
   ConversationContent,
@@ -40,9 +40,13 @@ function Chat({ chatId }: { chatId: string }) {
     startSession: ({ chatId, clientData }) =>
       startChatSession({ chatId, clientData }),
   })
-  const { messages, isLoading } = useLoadTranscript(chatId, loadTranscript, {
-    transport,
-  })
+  const { messages, isLoading } = useLoadTranscript<ChatUIMessage>(
+    chatId,
+    loadTranscript,
+    {
+      transport,
+    }
+  )
 
   if (isLoading) return <div className="min-h-0 flex-1" />
 
@@ -61,7 +65,7 @@ function ChatView({
   transport,
 }: {
   chatId: string
-  initialMessages: InferChatUIMessage<typeof aiChat>[]
+  initialMessages: ChatUIMessage[]
   transport: ReturnType<typeof useTriggerChatTransport<typeof aiChat>>
 }) {
   const { messages, sendMessage, status, stop, error } = useChat({
@@ -78,11 +82,19 @@ function ChatView({
           {messages.map((message) => (
             <Message from={message.role} key={message.id}>
               <MessageContent>
-                {message.parts.map((part, index) =>
-                  part.type === "text" ? (
-                    <MessageResponse key={index}>{part.text}</MessageResponse>
-                  ) : null
-                )}
+                {message.parts.map((part, index) => {
+                  if (part.type === "text") {
+                    return (
+                      <MessageResponse key={index}>{part.text}</MessageResponse>
+                    )
+                  }
+
+                  if (isToolPart(part)) {
+                    return <ToolCall key={part.toolCallId} part={part} />
+                  }
+
+                  return null
+                })}
               </MessageContent>
             </Message>
           ))}

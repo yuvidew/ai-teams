@@ -7,6 +7,7 @@ import { nanoid } from "nanoid"
 
 import { db } from "@/db"
 import { bots, chatMembers, chats, insertBotSchema } from "@/db/schema"
+import { createBotSandbox, deleteBotSandbox } from "@/lib/daytona"
 
 type CreateBotResult =
   { success: true; id: string } | { success: false; error: string }
@@ -34,16 +35,31 @@ export async function createBot(input: unknown): Promise<CreateBotResult> {
   const botId = nanoid()
   const chatId = nanoid()
 
-  await db.batch([
-    db.insert(bots).values({
-      ...values,
-      id: botId,
-      instructions: instructions || null,
-      userId,
-    }),
-    db.insert(chats).values({ id: chatId, userId, kind: "direct" }),
-    db.insert(chatMembers).values({ chatId, botId }),
-  ])
+  let sandboxId: string
+  try {
+    sandboxId = await createBotSandbox(botId)
+  } catch (error) {
+    console.error("Failed to create sandbox", error)
+    return { success: false, error: "Could not create the bot's sandbox." }
+  }
+
+  try {
+    await db.batch([
+      db.insert(bots).values({
+        ...values,
+        id: botId,
+        instructions: instructions || null,
+        sandboxId,
+        userId,
+      }),
+      db.insert(chats).values({ id: chatId, userId, kind: "direct" }),
+      db.insert(chatMembers).values({ chatId, botId }),
+    ])
+  } catch (error) {
+    // Don't leave an orphaned sandbox behind.
+    await deleteBotSandbox(sandboxId).catch(() => {})
+    throw error
+  }
 
   revalidatePath("/")
 
@@ -98,7 +114,7 @@ export async function deleteBot(botId: string): Promise<UpdateBotResult> {
   }
 
   const [bot] = await db
-    .select({ id: bots.id })
+    .select({ id: bots.id, sandboxId: bots.sandboxId })
     .from(bots)
     .where(and(eq(bots.id, botId), eq(bots.userId, userId)))
 
@@ -128,6 +144,15 @@ export async function deleteBot(botId: string): Promise<UpdateBotResult> {
       ),
     db.delete(bots).where(and(eq(bots.id, botId), eq(bots.userId, userId))),
   ])
+
+  if (bot.sandboxId) {
+    try {
+      await deleteBotSandbox(bot.sandboxId)
+    } catch (error) {
+      // The bot is already gone; surface the leak without failing the delete.
+      console.error(`Failed to delete sandbox ${bot.sandboxId}`, error)
+    }
+  }
 
   revalidatePath("/", "layout")
 

@@ -3,6 +3,13 @@ import { notFound } from "next/navigation"
 
 import { Chat } from "@/components/chat"
 import { ChatHeader } from "@/components/chat-header"
+import { VncPreview, VncProvider } from "@/components/vnc"
+import { ChatPanel, ChatPanelProvider } from "@/components/chat-panel"
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable"
 import { getChat } from "@/queries/chats"
 
 export default async function ChatPage({
@@ -16,9 +23,24 @@ export default async function ChatPage({
   if (!chat) notFound()
 
   return (
-    <div className="flex h-svh flex-col">
-      <ChatHeader chat={chat} />
-      <Chat chatId={chat.id} />
-    </div>
+    <ChatPanelProvider>
+      <VncProvider chatId={chat.id}>
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className="h-svh overflow-hidden has-data-[separator=active]:*:transition-none"
+        >
+          <ResizablePanel minSize="30%" className="overflow-hidden">
+            <div className="flex h-svh min-h-0 flex-col">
+              <ChatHeader chat={chat} />
+              <Chat chatId={chat.id} />
+            </div>
+          </ResizablePanel>
+          <ResizableHandle />
+          <ChatPanel>
+            <VncPreview name={chat.bot.name} />
+          </ChatPanel>
+        </ResizablePanelGroup>
+      </VncProvider>
+    </ChatPanelProvider>
   )
 }
