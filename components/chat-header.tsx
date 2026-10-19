@@ -1,18 +1,34 @@
 import { BotDialog } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { ChatPanelToggle } from "@/components/chat-panel-toggle"
+import { GroupChatAvatar } from "@/components/group-chat-avatar"
 import type { ChatDetail } from "@/queries/chats"
 
 function ChatHeader({ chat }: { chat: ChatDetail }) {
+  if (chat.kind === "group") {
+    // Group chats have no editable bot and no desktop panel.
+    return (
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
+        <GroupChatAvatar
+          seeds={chat.bots.map((bot) => bot.avatar)}
+          className="size-8"
+        />
+        <span className="truncate text-sm font-medium">{chat.name}</span>
+      </header>
+    )
+  }
+
+  const bot = chat.bots[0]
+
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
-      <BotDialog bot={chat.bot}>
+      <BotDialog bot={bot}>
         <button
           type="button"
           className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <ChatAvatar seed={chat.bot.avatar} className="size-8" />
-          <span className="truncate text-sm font-medium">{chat.bot.name}</span>
+          <ChatAvatar seed={bot.avatar} className="size-8" />
+          <span className="truncate text-sm font-medium">{bot.name}</span>
         </button>
       </BotDialog>
       <ChatPanelToggle />

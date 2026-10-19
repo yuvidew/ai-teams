@@ -4,15 +4,21 @@ import { and, asc, eq } from "drizzle-orm"
 import { db } from "@/db"
 import { chats } from "@/db/schema"
 
+export type ChatBot = {
+  id: string
+  name: string
+  job: string
+  instructions: string | null
+  avatar: string
+}
+
 export type ChatDetail = {
   id: string
-  bot: {
-    id: string
-    name: string
-    job: string
-    instructions: string | null
-    avatar: string
-  }
+  kind: "direct" | "group"
+  // The bot's name for a direct chat, the group's name for a group chat.
+  name: string
+  // Direct chats have exactly one; group chats have two or more.
+  bots: ChatBot[]
 }
 
 // One of the signed-in user's chats, or null if it doesn't exist or belongs to
@@ -27,7 +33,6 @@ export async function getChat(chatId: string): Promise<ChatDetail | null> {
     with: {
       members: {
         orderBy: (members) => asc(members.joinedAt),
-        limit: 1, // group chats fall back to their first bot for now
         with: {
           bot: {
             columns: {
@@ -43,9 +48,15 @@ export async function getChat(chatId: string): Promise<ChatDetail | null> {
     },
   })
 
-  const bot = chat?.members[0]?.bot
+  const chatBots = chat?.members.map((member) => member.bot) ?? []
 
-  if (!chat || !bot) return null
+  if (!chat || chatBots.length === 0) return null
 
-  return { id: chat.id, bot }
+  return {
+    id: chat.id,
+    kind: chat.kind,
+    name:
+      chat.kind === "group" ? (chat.name ?? "Group chat") : chatBots[0].name,
+    bots: chatBots,
+  }
 }

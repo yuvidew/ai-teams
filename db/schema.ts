@@ -9,15 +9,19 @@ import {
 } from "drizzle-orm/pg-core"
 import { createInsertSchema } from "drizzle-zod"
 import { nanoid } from "nanoid"
-import type { z } from "zod"
+import { z } from "zod"
 
 export const bots = pgTable(
   "bots",
   {
-    id: text("id").primaryKey().$defaultFn(() => nanoid()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
     userId: text("user_id").notNull(), // Clerk user id
     name: text("name").notNull(),
-    avatar: text("avatar").notNull().$defaultFn(() => nanoid()), // seed for the bot's face
+    avatar: text("avatar")
+      .notNull()
+      .$defaultFn(() => nanoid()), // seed for the bot's face
     job: text("job").notNull(), // what the bot is for, in a phrase
     instructions: text("instructions"), // how it should go about the job
     sandboxId: text("sandbox_id"), // third-party sandbox id, created lazily
@@ -43,7 +47,9 @@ export const chatKind = pgEnum("chat_kind", ["direct", "group"])
 export const chats = pgTable(
   "chats",
   {
-    id: text("id").primaryKey().$defaultFn(() => nanoid()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
     userId: text("user_id").notNull(), // Clerk user id
     kind: chatKind("kind").notNull().default("direct"),
     name: text("name"), // null for direct chats, which use the bot's name
@@ -53,6 +59,18 @@ export const chats = pgTable(
   },
   (t) => [index("chats_user_id_idx").on(t.userId)]
 )
+
+// What the client may set when creating a group chat: a name and its members.
+// Everything else (`id`, `userId`, `kind`, timestamps) is filled in server-side.
+export const insertGroupChatSchema = createInsertSchema(chats, {
+  name: z.string().trim().min(1, "Name is required").max(50),
+})
+  .pick({ name: true })
+  .extend({
+    botIds: z.array(z.string()).min(2, "Pick at least two bots").max(10),
+  })
+
+export type InsertGroupChat = z.infer<typeof insertGroupChatSchema>
 
 export const chatMembers = pgTable(
   "chat_members",

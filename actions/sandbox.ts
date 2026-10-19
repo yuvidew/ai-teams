@@ -17,10 +17,15 @@ export async function getChatVncUrl(chatId: string): Promise<VncResult> {
 
   if (!chat) return { success: false, error: "Chat not found." }
 
+  // Group chats have no desktop panel.
+  if (chat.kind === "group") {
+    return { success: false, error: "Group chats have no screen." }
+  }
+
   const [bot] = await db
     .select({ sandboxId: bots.sandboxId })
     .from(bots)
-    .where(eq(bots.id, chat.bot.id))
+    .where(eq(bots.id, chat.bots[0].id))
 
   if (!bot?.sandboxId) {
     return { success: false, error: "This bot has no sandbox." }

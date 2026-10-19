@@ -9,6 +9,8 @@ import { useParams, useRouter } from "next/navigation"
 
 import { BotDialog } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
+import { GroupChatAvatar } from "@/components/group-chat-avatar"
+import { GroupChatDialog } from "@/components/group-chat-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -44,7 +46,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import type { SidebarChat } from "@/queries/bots"
+import type { PickableBot, SidebarChat } from "@/queries/bots"
 
 const subscribeNothing = () => () => {}
 
@@ -62,10 +64,17 @@ function useModifierKey() {
 function ChatRow({ chat }: { chat: SidebarChat }) {
   return (
     <>
-      <ChatAvatar
-        seed={chat.avatar}
-        className="size-8 group-data-[collapsible=icon]:size-6"
-      />
+      {chat.kind === "group" ? (
+        <GroupChatAvatar
+          seeds={chat.avatars}
+          className="size-8 group-data-[collapsible=icon]:size-6"
+        />
+      ) : (
+        <ChatAvatar
+          seed={chat.avatars[0]}
+          className="size-8 group-data-[collapsible=icon]:size-6"
+        />
+      )}
       <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
         <div className="flex items-baseline justify-between gap-2">
           <span className="truncate font-medium">{chat.name}</span>
@@ -87,9 +96,16 @@ function ChatRow({ chat }: { chat: SidebarChat }) {
   )
 }
 
-export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
+export function AppSidebar({
+  chats,
+  bots,
+}: {
+  chats: SidebarChat[]
+  bots: PickableBot[]
+}) {
   // The dialogs live here, outside the menu, so they survive it closing.
   const [botDialogOpen, setBotDialogOpen] = React.useState(false)
+  const [groupDialogOpen, setGroupDialogOpen] = React.useState(false)
   const [searchOpen, setSearchOpen] = React.useState(false)
   const modifierKey = useModifierKey()
   const router = useRouter()
@@ -142,7 +158,7 @@ export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
                 <PlusIcon />
                 Create new bot
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setGroupDialogOpen(true)}>
                 <UsersIcon />
                 Create group chat
               </DropdownMenuItem>
@@ -150,6 +166,11 @@ export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
           </DropdownMenuContent>
         </DropdownMenu>
         <BotDialog open={botDialogOpen} onOpenChange={setBotDialogOpen} />
+        <GroupChatDialog
+          bots={bots}
+          open={groupDialogOpen}
+          onOpenChange={setGroupDialogOpen}
+        />
         <Tooltip>
           <TooltipTrigger
             render={

@@ -22,6 +22,16 @@ export default async function ChatPage({
 
   if (!chat) notFound()
 
+  // Group chats have no desktop, so no side panel either.
+  if (chat.kind === "group") {
+    return (
+      <div className="flex h-svh min-h-0 flex-col overflow-hidden">
+        <ChatHeader chat={chat} />
+        <Chat chatId={chat.id} bots={chat.bots} />
+      </div>
+    )
+  }
+
   return (
     <ChatPanelProvider>
       <VncProvider chatId={chat.id}>
@@ -32,12 +42,12 @@ export default async function ChatPage({
           <ResizablePanel minSize="30%" className="overflow-hidden">
             <div className="flex h-svh min-h-0 flex-col">
               <ChatHeader chat={chat} />
-              <Chat chatId={chat.id} />
+              <Chat chatId={chat.id} bots={chat.bots} />
             </div>
           </ResizablePanel>
           <ResizableHandle />
           <ChatPanel>
-            <VncPreview name={chat.bot.name} />
+            <VncPreview name={chat.name} />
           </ChatPanel>
         </ResizablePanelGroup>
       </VncProvider>

@@ -2,12 +2,14 @@ import { auth } from "@clerk/nextjs/server"
 import { asc, desc, eq } from "drizzle-orm"
 
 import { db } from "@/db"
-import { chats } from "@/db/schema"
+import { bots, chats } from "@/db/schema"
 
 export type SidebarChat = {
   id: string
+  kind: "direct" | "group"
   name: string
-  avatar: string
+  // One seed per member, in join order. A direct chat has exactly one.
+  avatars: string[]
   lastMessagePreview: string | null
   lastMessageAt: Date
 }
@@ -25,23 +27,39 @@ export async function getUserChats(): Promise<SidebarChat[]> {
     with: {
       members: {
         orderBy: (members) => asc(members.joinedAt),
-        limit: 1, // group chats fall back to their first bot for now
         with: { bot: { columns: { name: true, avatar: true } } },
       },
     },
   })
 
   return rows.flatMap((chat) => {
-    const bot = chat.members[0]?.bot
+    const members = chat.members.map((member) => member.bot)
 
-    if (!bot) return []
+    if (members.length === 0) return []
 
     return {
       id: chat.id,
-      name: bot.name,
-      avatar: bot.avatar,
+      kind: chat.kind,
+      name:
+        chat.kind === "group" ? (chat.name ?? "Group chat") : members[0].name,
+      avatars: members.map((bot) => bot.avatar),
       lastMessagePreview: chat.lastMessagePreview,
       lastMessageAt: chat.lastMessageAt,
     }
   })
+}
+
+export type PickableBot = { id: string; name: string; avatar: string }
+
+// The signed-in user's bots, for picking group chat members.
+export async function getUserBots(): Promise<PickableBot[]> {
+  const { userId } = await auth()
+
+  if (!userId) return []
+
+  return db
+    .select({ id: bots.id, name: bots.name, avatar: bots.avatar })
+    .from(bots)
+    .where(eq(bots.userId, userId))
+    .orderBy(asc(bots.createdAt))
 }
