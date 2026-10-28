@@ -14,6 +14,7 @@ import { assertWithinLimit, recordUsage } from "@/lib/usage"
 import { getChatBot, getChatBots, getChatOwner } from "./chat-bots"
 import { createHandoffTool, type HandoffTool } from "./handoff-tool"
 import { createMeteredSandbox } from "./metered-sandbox"
+import { captureError } from "./sentry"
 import { createSandboxTools, type SandboxTools } from "./sandbox-tools"
 import { MAX_OUTPUT_TOKENS } from "./usage-guards"
 
@@ -42,6 +43,11 @@ export const aiChat = chat.withUIMessage<ChatUIMessage>().agent({
     ),
     handoff: createHandoffTool(chatId, clientData?.botId),
   }),
+  // The turn loop swallows errors from run() and the hooks (the chat carries
+  // on), so they never reach the task's onFailure. Report them here instead.
+  onTurnComplete: async ({ chatId, clientData, error }) => {
+    if (error) await captureError(error, { chatId, botId: clientData?.botId })
+  },
   run: async ({ chatId, clientData, messages, tools, signal, streamText }) => {
     const [bot, bots, owner] = await Promise.all([
       getChatBot(chatId, clientData?.botId),
