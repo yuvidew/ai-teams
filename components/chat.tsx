@@ -1,6 +1,7 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
+import Link from "next/link"
 import { useState } from "react"
 import {
   useLoadTranscript,
@@ -238,7 +239,11 @@ function ChatView({
         <ConversationScrollButton />
         {error && (
           <p className="p-4 text-center text-sm text-destructive">
-            Couldn&apos;t get a reply. Please try again.
+            Couldn&apos;t get a reply. Please try again, or check your{" "}
+            <Link href="/usage" className="underline">
+              usage
+            </Link>
+            .
           </p>
         )}
       </Conversation>

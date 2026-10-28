@@ -1,18 +1,20 @@
 "use server"
 
 import { auth } from "@clerk/nextjs/server"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, count, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { nanoid } from "nanoid"
 
 import { db } from "@/db"
 import { bots, chatMembers, chats, insertBotSchema } from "@/db/schema"
 import { hasFeatures, UPGRADE_MESSAGE } from "@/lib/billing"
+import { PRO_LIMITS } from "@/lib/usage-limits"
+import { syncUsageAccount } from "@/lib/usage-sync"
 import { createBotSandbox, deleteBotSandbox } from "@/lib/daytona"
 
 type CreateBotResult =
   | { success: true; id: string }
-  | { success: false; error: string; upgrade?: true }
+  | { success: false; error: string; upgrade?: true; limit?: true }
 
 export async function createBot(input: unknown): Promise<CreateBotResult> {
   const { userId } = await auth()
@@ -24,6 +26,21 @@ export async function createBot(input: unknown): Promise<CreateBotResult> {
   // A bot comes with its own sandbox, so it needs both features.
   if (!(await hasFeatures("bots", "sandboxes"))) {
     return { success: false, error: UPGRADE_MESSAGE, upgrade: true }
+  }
+
+  // Every bot owns a sandbox, so the plan caps how many there can be.
+  await syncUsageAccount(userId)
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(bots)
+    .where(eq(bots.userId, userId))
+
+  if (total >= PRO_LIMITS.bots) {
+    return {
+      success: false,
+      error: `Pro includes up to ${PRO_LIMITS.bots} bots. Delete one to create another.`,
+      limit: true,
+    }
   }
 
   const parsed = insertBotSchema.safeParse(input)

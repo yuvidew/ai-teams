@@ -1,5 +1,6 @@
 "use server"
 
+import { auth } from "@clerk/nextjs/server"
 import { auth as triggerAuth } from "@trigger.dev/sdk"
 import {
   chat,
@@ -8,6 +9,8 @@ import {
 } from "@trigger.dev/sdk/ai"
 
 import { hasFeatures } from "@/lib/billing"
+import { assertWithinLimit } from "@/lib/usage"
+import { syncUsageAccount } from "@/lib/usage-sync"
 import { getChat } from "@/queries/chats"
 import type { aiChat, ChatUIMessage } from "@/trigger/chat"
 
@@ -28,17 +31,30 @@ async function assertChatOwner(chatId: string) {
 export async function startChatSession(
   params: ChatStartSessionParams<typeof aiChat>
 ) {
-  await assertChatOwner(params.chatId)
+  await assertCanRun(params.chatId)
   return start(params)
 }
 
 export async function mintChatAccessToken(chatId: string) {
-  await assertChatOwner(chatId)
+  await assertCanRun(chatId)
 
   return triggerAuth.createPublicToken({
     scopes: { read: { sessions: chatId }, write: { sessions: chatId } },
     expirationTime: "1h",
   })
+}
+
+// Starting or resuming a run also needs room left in this period's allowance.
+// The run checks again on every turn; this just fails fast.
+async function assertCanRun(chatId: string) {
+  await assertChatOwner(chatId)
+
+  const { userId } = await auth()
+  if (!userId) throw new Error("Not signed in")
+
+  await syncUsageAccount(userId)
+  await assertWithinLimit(userId, "ai_tokens")
+  await assertWithinLimit(userId, "sandbox_seconds")
 }
 
 type Transcript = Awaited<ReturnType<typeof load>>

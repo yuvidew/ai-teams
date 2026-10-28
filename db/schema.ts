@@ -1,6 +1,8 @@
 import { relations } from "drizzle-orm"
 import {
+  boolean,
   index,
+  integer,
   pgEnum,
   pgTable,
   primaryKey,
@@ -25,6 +27,9 @@ export const bots = pgTable(
     job: text("job").notNull(), // what the bot is for, in a phrase
     instructions: text("instructions"), // how it should go about the job
     sandboxId: text("sandbox_id"), // third-party sandbox id, created lazily
+    // Sandbox running time is billed up to here (see lib/usage.ts). Daytona
+    // auto-stops an idle sandbox, so this is when it stops costing us.
+    sandboxPaidUntil: timestamp("sandbox_paid_until"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [index("bots_user_id_idx").on(t.userId)]
@@ -105,3 +110,35 @@ export const chatMembersRelations = relations(chatMembers, ({ one }) => ({
 export type Chat = typeof chats.$inferSelect
 export type NewChat = typeof chats.$inferInsert
 export type ChatMember = typeof chatMembers.$inferSelect
+
+export const usageKind = pgEnum("usage_kind", ["ai_tokens", "sandbox_seconds"])
+
+// Append-only record of metered usage. A user's usage in the current period is
+// the sum of their rows since the period started.
+export const usageLedger = pgTable(
+  "usage_ledger",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text("user_id").notNull(), // Clerk user id
+    kind: usageKind("kind").notNull(),
+    amount: integer("amount").notNull(), // tokens or seconds
+    botId: text("bot_id"),
+    chatId: text("chat_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("usage_ledger_user_kind_idx").on(t.userId, t.kind, t.createdAt)]
+)
+
+// A copy of the user's Clerk subscription, kept so background runs (which have
+// no Clerk session) can enforce the plan and find the current usage period.
+export const usageAccounts = pgTable("usage_accounts", {
+  userId: text("user_id").primaryKey(), // Clerk user id
+  entitled: boolean("entitled").notNull().default(false),
+  // Start of a subscription period; usage periods are monthly from here.
+  anchor: timestamp("anchor").notNull(),
+  syncedAt: timestamp("synced_at").defaultNow().notNull(),
+})
+
+export type UsageKind = (typeof usageKind.enumValues)[number]

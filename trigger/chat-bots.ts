@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm"
 
 import { db } from "@/db"
-import { chatMembers } from "@/db/schema"
+import { chatMembers, chats } from "@/db/schema"
 
 const botColumns = {
   id: true,
@@ -21,6 +21,16 @@ export type ChatBotRecord = {
 
 // Not scoped to a user: the chat id only reaches a run through
 // actions/chat.ts, which checks ownership first.
+
+/** The Clerk user id of the chat's owner, who pays for its usage. */
+export async function getChatOwner(chatId: string): Promise<string | null> {
+  const chat = await db.query.chats.findFirst({
+    where: eq(chats.id, chatId),
+    columns: { userId: true },
+  })
+
+  return chat?.userId ?? null
+}
 
 /** Every bot in a chat, in join order. A direct chat has exactly one. */
 export async function getChatBots(chatId: string): Promise<ChatBotRecord[]> {

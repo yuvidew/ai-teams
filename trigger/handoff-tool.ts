@@ -3,9 +3,12 @@ import { stepCountIs, streamText, tool } from "ai"
 import { z } from "zod"
 
 import { buildBotSystemPrompt } from "@/lib/bot-prompt"
-import { getStartedSandbox } from "@/lib/daytona"
-import { getChatBot, getChatBots } from "./chat-bots"
+import { recordUsage } from "@/lib/usage"
+import { getChatBot, getChatBots, getChatOwner } from "./chat-bots"
+import { createMeteredSandbox } from "./metered-sandbox"
 import { createSandboxTools } from "./sandbox-tools"
+
+import { MAX_OUTPUT_TOKENS } from "./usage-guards"
 
 // Same model as the chat agent itself (see trigger/chat.ts).
 const MODEL = "ministral-14b-latest"
@@ -60,12 +63,23 @@ export function createHandoffTool(chatId: string, callerBotId?: string) {
           handoff: { from: caller?.name ?? "another bot", reason },
         }),
         messages,
-        tools: createSandboxTools(async () => {
-          if (!target.sandboxId) throw new Error("This bot has no sandbox.")
-          return getStartedSandbox(target.sandboxId)
-        }),
+        tools: createSandboxTools(
+          createMeteredSandbox(chatId, async () => target)
+        ),
         stopWhen: stepCountIs(40),
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
         abortSignal,
+        // Per step, so a stopped generation is still billed. The target's tokens
+        // are on the chat owner's tab too.
+        onStepFinish: async ({ usage }) => {
+          const owner = await getChatOwner(chatId)
+          if (owner) {
+            await recordUsage(owner, "ai_tokens", usage.totalTokens ?? 0, {
+              botId: target.id,
+              chatId,
+            })
+          }
+        },
       })
 
       let reply = ""

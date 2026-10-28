@@ -10,10 +10,12 @@ import {
 import { z } from "zod"
 
 import { buildBotSystemPrompt } from "@/lib/bot-prompt"
-import { getStartedSandbox } from "@/lib/daytona"
-import { getChatBot, getChatBots } from "./chat-bots"
+import { assertWithinLimit, recordUsage } from "@/lib/usage"
+import { getChatBot, getChatBots, getChatOwner } from "./chat-bots"
 import { createHandoffTool, type HandoffTool } from "./handoff-tool"
+import { createMeteredSandbox } from "./metered-sandbox"
 import { createSandboxTools, type SandboxTools } from "./sandbox-tools"
+import { MAX_OUTPUT_TOKENS } from "./usage-guards"
 
 // Assistant messages carry the id of the bot that wrote them, so group chats
 // can show who said what.
@@ -33,29 +35,24 @@ export const aiChat = chat.withUIMessage<ChatUIMessage>().agent({
   // Direct chats send no client data at all, so the whole object is optional.
   clientDataSchema: z.object({ botId: z.string().optional() }).optional(),
   // Resolved once per turn. The sandbox is only looked up (and woken) when a
-  // tool actually runs.
-  tools: ({ chatId, clientData }) => {
-    let sandbox: ReturnType<typeof getStartedSandbox> | undefined
-
-    return {
-      ...createSandboxTools(() => {
-        sandbox ??= getChatBot(chatId, clientData?.botId).then((bot) => {
-          if (!bot?.sandboxId) throw new Error("This bot has no sandbox.")
-          return getStartedSandbox(bot.sandboxId)
-        })
-        // Don't cache a failure; the next tool call should try again.
-        sandbox.catch(() => (sandbox = undefined))
-
-        return sandbox
-      }),
-      handoff: createHandoffTool(chatId, clientData?.botId),
-    }
-  },
+  // tool actually runs, and every use is billed to the chat's owner.
+  tools: ({ chatId, clientData }) => ({
+    ...createSandboxTools(
+      createMeteredSandbox(chatId, () => getChatBot(chatId, clientData?.botId))
+    ),
+    handoff: createHandoffTool(chatId, clientData?.botId),
+  }),
   run: async ({ chatId, clientData, messages, tools, signal, streamText }) => {
-    const [bot, bots] = await Promise.all([
+    const [bot, bots, owner] = await Promise.all([
       getChatBot(chatId, clientData?.botId),
       getChatBots(chatId),
+      getChatOwner(chatId),
     ])
+
+    // Plan and allowance are enforced here too: a chat run outlives the page
+    // that started it.
+    if (!owner) throw new Error("Chat not found.")
+    await assertWithinLimit(owner, "ai_tokens")
     const isGroup = bots.length > 1
 
     // Stamp the reply with the bot that is answering it.
@@ -86,7 +83,14 @@ export const aiChat = chat.withUIMessage<ChatUIMessage>().agent({
           ),
       // A handoff ends this bot's turn: the target bot answers inside the tool.
       stopWhen: [stepCountIs(40), hasToolCall("handoff")],
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
       abortSignal: signal,
+      onStepFinish: async ({ usage }) => {
+        await recordUsage(owner, "ai_tokens", usage.totalTokens ?? 0, {
+          botId: bot?.id,
+          chatId,
+        })
+      },
     })
   },
 })

@@ -1,6 +1,7 @@
 import { Daytona, type Sandbox } from "@daytona/sdk"
 
 import { MEMORY_FILE } from "@/lib/bot-prompt"
+import { SANDBOX_AUTO_STOP_MINUTES } from "@/lib/usage-limits"
 
 // The endpoint and key are passed explicitly: when DAYTONA_API_URL comes from
 // both a .env file and the process environment (as in the Trigger.dev dev
@@ -16,7 +17,11 @@ const daytona = new Daytona({
  * the bot's blank memory file.
  */
 export async function createBotSandbox(botId: string): Promise<string> {
-  const sandbox = await daytona.create({ labels: { botId } })
+  const sandbox = await daytona.create({
+    labels: { botId },
+    // Idle sandboxes stop quickly; usage billing assumes this interval.
+    autoStopInterval: SANDBOX_AUTO_STOP_MINUTES,
+  })
 
   try {
     // Not fs.uploadFile: the SDK's upload path needs a runtime `require` that
@@ -56,6 +61,11 @@ export async function getStartedSandbox(sandboxId: string): Promise<Sandbox> {
     await sandbox.start()
   }
 
+  // Sandboxes made before metering existed have the long default.
+  if (sandbox.autoStopInterval !== SANDBOX_AUTO_STOP_MINUTES) {
+    await sandbox.setAutostopInterval(SANDBOX_AUTO_STOP_MINUTES)
+  }
+
   return sandbox
 }
 
@@ -80,4 +90,11 @@ export async function getSandboxVncUrl(sandboxId: string): Promise<string> {
   })
 
   return `${url.replace(/\/$/, "")}/vnc.html?${params}`
+}
+
+/** Resets the sandbox's idle timer so it isn't auto-stopped while in use. */
+export async function refreshSandboxActivity(sandboxId: string): Promise<void> {
+  const sandbox = await getStartedSandbox(sandboxId)
+
+  await sandbox.refreshActivity()
 }

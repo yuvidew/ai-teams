@@ -10,9 +10,10 @@ import {
 } from "react"
 import { Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react"
 
-import { getChatVncUrl } from "@/actions/sandbox"
+import { getChatVncUrl, keepSandboxAlive } from "@/actions/sandbox"
 import { Button } from "@/components/ui/button"
 import { useUpgradeToast } from "@/components/upgrade-toast"
+import { SANDBOX_AUTO_STOP_MINUTES } from "@/lib/usage-limits"
 import {
   Dialog,
   DialogClose,
@@ -70,6 +71,7 @@ function VncProvider({
       .then((result) => {
         if (cancelled) return
         if (!result.success && result.upgrade) showUpgrade(result.error)
+        if (!result.success && result.limit) showUpgrade(result.error, "/usage")
         setState(
           result.success
             ? { status: "ready", url: result.url }
@@ -86,6 +88,33 @@ function VncProvider({
       cancelled = true
     }
   }, [chatId, attempt, showUpgrade])
+
+  // While the screen is open the sandbox is in use: keep it awake and bill it.
+  // If the allowance runs out, close the screen.
+  const ready = state.status === "ready"
+  useEffect(() => {
+    if (!ready) return
+
+    const timer = setInterval(
+      () => {
+        if (document.visibilityState !== "visible") return
+
+        keepSandboxAlive(chatId)
+          .then((result) => {
+            if (result.success) return
+            if (result.limit) showUpgrade(result.error, "/usage")
+            if (result.upgrade) showUpgrade(result.error)
+            if (result.limit || result.upgrade) {
+              setState({ status: "error", error: result.error })
+            }
+          })
+          .catch(() => {})
+      },
+      (SANDBOX_AUTO_STOP_MINUTES - 1) * 60 * 1000
+    )
+
+    return () => clearInterval(timer)
+  }, [ready, chatId, showUpgrade])
 
   const reload = useCallback(() => {
     setState({ status: "loading" })

@@ -151,6 +151,10 @@ function BotDialog({
             showUpgrade(result.error)
             return
           }
+          if ("limit" in result) {
+            showUpgrade(result.error, "/usage")
+            return
+          }
           form.setError("root", { message: result.error })
           toast.add({
             type: "error",
