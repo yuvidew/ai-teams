@@ -40,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
+import { useUpgradeToast } from "@/components/upgrade-toast"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { insertBotSchema } from "@/db/schema"
 
@@ -136,6 +137,8 @@ function BotDialog({
     }
   }, [open, reset, botId, botName, botJob, botInstructions, botAvatar])
 
+  const showUpgrade = useUpgradeToast()
+
   function onSubmit(values: FormValues) {
     startTransition(async () => {
       try {
@@ -144,6 +147,10 @@ function BotDialog({
           : await createBot(values)
 
         if (!result.success) {
+          if ("upgrade" in result) {
+            showUpgrade(result.error)
+            return
+          }
           form.setError("root", { message: result.error })
           toast.add({
             type: "error",

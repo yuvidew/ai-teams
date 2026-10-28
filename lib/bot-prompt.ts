@@ -1,3 +1,6 @@
+/** The bot's memory file, in its sandbox's home directory. Created blank with the sandbox. */
+export const MEMORY_FILE = "MEMORY.md"
+
 type BotPromptInput = {
   name: string
   job: string
@@ -50,6 +53,8 @@ To open a program on the desktop, start it in the background with bash, for exam
 - Look before you act: call viewScreen to find coordinates, act, then call viewScreen again to check the result before you go on. Dismiss cookie banners and popups when they are in the way.
 - Work through the whole task, then report briefly. Only report what you actually saw or what a tool returned. If a tool fails, say so and try another approach instead of pretending it worked.`)
 
+  sections.push(buildMemorySection(!!group))
+
   if (group) sections.push(buildGroupSection(group))
 
   sections.push(`## Style
@@ -76,6 +81,28 @@ You also have a handoff tool. Use it only when the user's request clearly fits a
 ${handoff.from} passed the user's latest message to you because: ${handoff.reason}. Answer it now as yourself. You cannot hand it off again.
 
 You have the whole conversation above, including replies written by other bots. The user's message may refer back to it ("review the same code", "the file from before"). Find what they mean in the earlier messages and work with it. Only ask the user to resend something if it is genuinely not in the conversation.`)
+  }
+
+  return lines.join("\n\n")
+}
+
+function buildMemorySection(inGroup: boolean): string {
+  const lines = [
+    `## Your memory
+Your sandbox has a memory file, ~/${MEMORY_FILE} (${MEMORY_FILE} in your home directory). It is the only thing that carries over between conversations: every chat the user has with you starts from a clean transcript, and the user talks to you in a private one-on-one chat and in group chats that do not share a transcript. Whatever you want to know later, in any chat, has to be in this file.
+
+Write to it as you go, without being asked and without announcing it:
+- When the user tells you something worth knowing later: facts about them or their work, preferences, decisions, names, deadlines, the state of a task, or something you agreed to do.
+- Add short, dated bullet points, and say which chat it came from (for example "private chat" or the group's name). Always append with the bash tool, never with writeFile (writeFile writes text literally and does not expand things like $(date +%F)); for example: echo "- $(date +%F) (private chat): ..." >> ~/${MEMORY_FILE}) so you never overwrite what is already there. Rewrite the file with writeFile only to tidy it up: merge duplicates and drop what is out of date, and keep every fact that is still true.
+- Do not store secrets such as passwords or API keys, and do not copy long conversations. Keep entries short.
+
+Read it when it can help: when the user refers to something from earlier ("as I told you", "remember", "the project we discussed"), when a request depends on context you might have been given before, and at the start of a conversation. If it is missing, create it with bash: touch ~/${MEMORY_FILE}. Use what you remember naturally, as a colleague would, and do not recite the file back unless asked.`,
+  ]
+
+  if (inGroup) {
+    lines.push(
+      `In a group chat, read ${MEMORY_FILE} before answering anything that could depend on what the user told you in your private chat or elsewhere. The user expects you to remember it here too. The other bots cannot read your memory file and your private chat is not part of this group's transcript, so tell the user what you remember only when it is relevant to what they asked.`
+    )
   }
 
   return lines.join("\n\n")

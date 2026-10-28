@@ -7,6 +7,7 @@ import {
   type ChatStartSessionParams,
 } from "@trigger.dev/sdk/ai"
 
+import { hasFeatures } from "@/lib/billing"
 import { getChat } from "@/queries/chats"
 import type { aiChat, ChatUIMessage } from "@/trigger/chat"
 
@@ -17,6 +18,11 @@ const load = chat.createLoadTranscriptAction(defaultStorage)
 // user owns the chat before touching its session or transcript.
 async function assertChatOwner(chatId: string) {
   if (!(await getChat(chatId))) throw new Error("Chat not found")
+
+  // Talking to a bot runs it in its sandbox; both are paid features.
+  if (!(await hasFeatures("bots", "sandboxes"))) {
+    throw new Error("Upgrade to Pro to chat with bots.")
+  }
 }
 
 export async function startChatSession(

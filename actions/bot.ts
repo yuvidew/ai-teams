@@ -7,16 +7,23 @@ import { nanoid } from "nanoid"
 
 import { db } from "@/db"
 import { bots, chatMembers, chats, insertBotSchema } from "@/db/schema"
+import { hasFeatures, UPGRADE_MESSAGE } from "@/lib/billing"
 import { createBotSandbox, deleteBotSandbox } from "@/lib/daytona"
 
 type CreateBotResult =
-  { success: true; id: string } | { success: false; error: string }
+  | { success: true; id: string }
+  | { success: false; error: string; upgrade?: true }
 
 export async function createBot(input: unknown): Promise<CreateBotResult> {
   const { userId } = await auth()
 
   if (!userId) {
     return { success: false, error: "You must be signed in to create a bot." }
+  }
+
+  // A bot comes with its own sandbox, so it needs both features.
+  if (!(await hasFeatures("bots", "sandboxes"))) {
+    return { success: false, error: UPGRADE_MESSAGE, upgrade: true }
   }
 
   const parsed = insertBotSchema.safeParse(input)

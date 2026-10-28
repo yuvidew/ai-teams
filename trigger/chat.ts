@@ -30,7 +30,8 @@ export type ChatUIMessage = UIMessage<
 export const aiChat = chat.withUIMessage<ChatUIMessage>().agent({
   id: "ai-chat",
   // Sent per message from the UI: which group member should answer.
-  clientDataSchema: z.object({ botId: z.string().optional() }),
+  // Direct chats send no client data at all, so the whole object is optional.
+  clientDataSchema: z.object({ botId: z.string().optional() }).optional(),
   // Resolved once per turn. The sandbox is only looked up (and woken) when a
   // tool actually runs.
   tools: ({ chatId, clientData }) => {

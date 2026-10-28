@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/toast"
+import { useUpgradeToast } from "@/components/upgrade-toast"
 import { insertGroupChatSchema, type InsertGroupChat } from "@/db/schema"
 import type { PickableBot } from "@/queries/bots"
 
@@ -52,12 +53,18 @@ function GroupChatDialog({ bots, open, onOpenChange }: GroupChatDialogProps) {
     if (open) reset({ name: "", botIds: [] })
   }, [open, reset])
 
+  const showUpgrade = useUpgradeToast()
+
   function onSubmit(values: InsertGroupChat) {
     startTransition(async () => {
       try {
         const result = await createGroupChat(values)
 
         if (!result.success) {
+          if ("upgrade" in result) {
+            showUpgrade(result.error)
+            return
+          }
           form.setError("root", { message: result.error })
           toast.add({
             type: "error",

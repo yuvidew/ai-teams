@@ -10,6 +10,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
+import { hasFeatures } from "@/lib/billing"
 import { getChat } from "@/queries/chats"
 
 export default async function ChatPage({
@@ -22,12 +23,14 @@ export default async function ChatPage({
 
   if (!chat) notFound()
 
+  const canChat = await hasFeatures("bots", "sandboxes")
+
   // Group chats have no desktop, so no side panel either.
   if (chat.kind === "group") {
     return (
       <div className="flex h-svh min-h-0 flex-col overflow-hidden">
         <ChatHeader chat={chat} />
-        <Chat chatId={chat.id} bots={chat.bots} />
+        <Chat chatId={chat.id} bots={chat.bots} canChat={canChat} />
       </div>
     )
   }
@@ -42,7 +45,7 @@ export default async function ChatPage({
           <ResizablePanel minSize="30%" className="overflow-hidden">
             <div className="flex h-svh min-h-0 flex-col">
               <ChatHeader chat={chat} />
-              <Chat chatId={chat.id} bots={chat.bots} />
+              <Chat chatId={chat.id} bots={chat.bots} canChat={canChat} />
             </div>
           </ResizablePanel>
           <ResizableHandle />

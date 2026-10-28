@@ -14,6 +14,7 @@ import {
 } from "@/actions/chat"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Badge } from "@/components/ui/badge"
+import { useUpgradeToast } from "@/components/upgrade-toast"
 import { ToolCall, isToolPart } from "@/components/tool-call"
 import type { ChatBot } from "@/queries/chats"
 import type { aiChat, ChatUIMessage } from "@/trigger/chat"
@@ -43,7 +44,15 @@ import {
 
 // Loads the saved transcript for this chat, then mounts the live chat on top
 // of it so `useChat`'s initial messages and the transport cursor agree.
-function Chat({ chatId, bots }: { chatId: string; bots: ChatBot[] }) {
+function Chat({
+  chatId,
+  bots,
+  canChat,
+}: {
+  chatId: string
+  bots: ChatBot[]
+  canChat: boolean
+}) {
   const transport = useTriggerChatTransport<typeof aiChat>({
     task: "ai-chat",
     accessToken: ({ chatId }) => mintChatAccessToken(chatId),
@@ -64,6 +73,7 @@ function Chat({ chatId, bots }: { chatId: string; bots: ChatBot[] }) {
     <ChatView
       chatId={chatId}
       bots={bots}
+      canChat={canChat}
       initialMessages={messages}
       transport={transport}
     />
@@ -116,14 +126,17 @@ function Handoff({ part, bots }: { part: HandoffPart; bots: ChatBot[] }) {
 function ChatView({
   chatId,
   bots,
+  canChat,
   initialMessages,
   transport,
 }: {
   chatId: string
   bots: ChatBot[]
+  canChat: boolean
   initialMessages: ChatUIMessage[]
   transport: ReturnType<typeof useTriggerChatTransport<typeof aiChat>>
 }) {
+  const showUpgrade = useUpgradeToast()
   const { messages, sendMessage, status, stop, error } = useChat({
     id: chatId,
     messages: initialMessages,
@@ -233,6 +246,13 @@ function ChatView({
         className="mx-auto w-full max-w-3xl p-4"
         onSubmit={({ text }) => {
           if (!text.trim()) return
+
+          if (!canChat) {
+            showUpgrade(
+              "Chatting with bots is a Pro feature. Upgrade to unlock bots and sandboxes."
+            )
+            return
+          }
 
           // Per-message metadata reaches the agent as `clientData` for the turn.
           // The user message keeps the addressee too, so a reply can be

@@ -5,11 +5,13 @@ import { and, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { nanoid } from "nanoid"
 
+import { hasFeatures, UPGRADE_MESSAGE } from "@/lib/billing"
 import { db } from "@/db"
 import { bots, chatMembers, chats, insertGroupChatSchema } from "@/db/schema"
 
 type CreateGroupChatResult =
-  { success: true; id: string } | { success: false; error: string }
+  | { success: true; id: string }
+  | { success: false; error: string; upgrade?: true }
 
 export async function createGroupChat(
   input: unknown
@@ -21,6 +23,10 @@ export async function createGroupChat(
       success: false,
       error: "You must be signed in to create a group chat.",
     }
+  }
+
+  if (!(await hasFeatures("bots"))) {
+    return { success: false, error: UPGRADE_MESSAGE, upgrade: true }
   }
 
   const parsed = insertGroupChatSchema.safeParse(input)

@@ -4,14 +4,20 @@ import { eq } from "drizzle-orm"
 
 import { db } from "@/db"
 import { bots } from "@/db/schema"
+import { hasFeatures, UPGRADE_MESSAGE } from "@/lib/billing"
 import { getSandboxVncUrl } from "@/lib/daytona"
 import { getChat } from "@/queries/chats"
 
 type VncResult =
-  { success: true; url: string } | { success: false; error: string }
+  | { success: true; url: string }
+  | { success: false; error: string; upgrade?: true }
 
 /** Starts the chat bot's desktop and returns the URL of its VNC session. */
 export async function getChatVncUrl(chatId: string): Promise<VncResult> {
+  if (!(await hasFeatures("sandboxes"))) {
+    return { success: false, error: UPGRADE_MESSAGE, upgrade: true }
+  }
+
   // getChat is scoped to the signed-in user, so this doubles as the auth check.
   const chat = await getChat(chatId)
 

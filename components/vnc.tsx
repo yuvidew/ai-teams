@@ -12,6 +12,7 @@ import { Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react"
 
 import { getChatVncUrl } from "@/actions/sandbox"
 import { Button } from "@/components/ui/button"
+import { useUpgradeToast } from "@/components/upgrade-toast"
 import {
   Dialog,
   DialogClose,
@@ -60,6 +61,7 @@ function VncProvider({
   const [dialogSlot, setDialogSlot] = useState<HTMLElement | null>(null)
   const [attempt, setAttempt] = useState(0)
   const frameRef = useRef<HTMLIFrameElement>(null)
+  const showUpgrade = useUpgradeToast()
 
   useEffect(() => {
     let cancelled = false
@@ -67,6 +69,7 @@ function VncProvider({
     getChatVncUrl(chatId)
       .then((result) => {
         if (cancelled) return
+        if (!result.success && result.upgrade) showUpgrade(result.error)
         setState(
           result.success
             ? { status: "ready", url: result.url }
@@ -82,7 +85,7 @@ function VncProvider({
     return () => {
       cancelled = true
     }
-  }, [chatId, attempt])
+  }, [chatId, attempt, showUpgrade])
 
   const reload = useCallback(() => {
     setState({ status: "loading" })
