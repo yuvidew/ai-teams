@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server"
 import { and, asc, eq } from "drizzle-orm"
 
 import { db } from "@/db"
-import { chats } from "@/db/schema"
+import { chatMessages, chats } from "@/db/schema"
 
 export type ChatBot = {
   id: string
@@ -59,4 +59,41 @@ export async function getChat(chatId: string): Promise<ChatDetail | null> {
       chat.kind === "group" ? (chat.name ?? "Group chat") : chatBots[0].name,
     bots: chatBots,
   }
+}
+
+export type ChatMessageRow = {
+  id: string
+  // The bot that wrote it; null means the user did.
+  botId: string | null
+  mentions: string[]
+  content: string
+  createdAt: Date
+}
+
+// The chat's transcript, oldest first. Scoped to the signed-in user.
+export async function getChatMessages(
+  chatId: string
+): Promise<ChatMessageRow[]> {
+  const { userId } = await auth()
+
+  if (!userId) return []
+
+  const [chat] = await db
+    .select({ id: chats.id })
+    .from(chats)
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId)))
+
+  if (!chat) return []
+
+  return db
+    .select({
+      id: chatMessages.id,
+      botId: chatMessages.botId,
+      mentions: chatMessages.mentions,
+      content: chatMessages.content,
+      createdAt: chatMessages.createdAt,
+    })
+    .from(chatMessages)
+    .where(eq(chatMessages.chatId, chatId))
+    .orderBy(asc(chatMessages.createdAt))
 }

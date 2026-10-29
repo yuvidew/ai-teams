@@ -176,6 +176,59 @@ export async function postGroupMessage(
   return { success: true, id }
 }
 
+/**
+ * Logs a message in a bot's one-on-one chat. `from` says who wrote it: the
+ * user (the AI tool relaying what they asked) or the bot (its reply).
+ */
+export async function postDirectMessage(
+  userId: string,
+  input: { botId: string; from: "user" | "bot"; content: string }
+): Promise<Result<{ id: string }>> {
+  const content = input.content.trim()
+
+  if (!content) return { success: false, error: "Message is empty." }
+  if (content.length > MAX_CONTENT) {
+    return {
+      success: false,
+      error: `Message is too long (max ${MAX_CONTENT} characters).`,
+    }
+  }
+
+  const [membership] = await db
+    .select({ chatId: chats.id })
+    .from(chatMembers)
+    .innerJoin(chats, eq(chats.id, chatMembers.chatId))
+    .where(
+      and(
+        eq(chatMembers.botId, input.botId),
+        eq(chats.userId, userId),
+        eq(chats.kind, "direct")
+      )
+    )
+
+  if (!membership) return { success: false, error: "Bot not found." }
+
+  const id = nanoid()
+
+  await db.batch([
+    db.insert(chatMessages).values({
+      id,
+      chatId: membership.chatId,
+      botId: input.from === "bot" ? input.botId : null,
+      content,
+    }),
+    db
+      .update(chats)
+      .set({
+        lastMessagePreview: content.slice(0, 120),
+        lastMessageAt: new Date(),
+      })
+      .where(eq(chats.id, membership.chatId)),
+  ])
+
+  return { success: true, id }
+}
+
 export type GroupMessage = {
   id: string
   from: string

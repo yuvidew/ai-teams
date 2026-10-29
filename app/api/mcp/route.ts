@@ -11,6 +11,7 @@ import {
   createGroupForUser,
   getOwnedGroup,
   listGroups,
+  postDirectMessage,
   postGroupMessage,
   readGroupMessages,
 } from "@/lib/groups"
@@ -81,7 +82,7 @@ const handler = createMcpHandler(
           if (!bot) return failure(new Error("Bot not found."))
 
           return text(
-            `${buildBotSystemPrompt(bot)}\n\n## Using the tools here\nYour botId is ${bot.id}. Pass it as botId to bash, readFile, writeFile, listFiles, mouseClick, mouseMove, mouseScroll, keyboardType, keyboardPress, viewScreen and showScreen. Both screenshot tools return the picture to you. If you are working in a group, use get_group to see your teammates and post_group_message to talk to them.`
+            `${buildBotSystemPrompt(bot)}\n\n## Using the tools here\nYour botId is ${bot.id}. Pass it as botId to bash, readFile, writeFile, listFiles, mouseClick, mouseMove, mouseScroll, keyboardType, keyboardPress, viewScreen and showScreen. Both screenshot tools return the picture to you. If you are working in a group, use get_group to see your teammates and post_group_message to talk to them. After each task, call log_chat_message to record what the user asked and your reply, so they can read it in the web app.`
           )
         } catch (error) {
           return failure(error)
@@ -109,6 +110,32 @@ const handler = createMcpHandler(
             name: args.name,
             next: `Call get_bot with botId ${result.id} to take on its role, then use the sandbox tools with that botId.`,
           })
+        } catch (error) {
+          return failure(error)
+        }
+      }
+    )
+
+    server.registerTool(
+      "log_chat_message",
+      {
+        title: "Log chat message",
+        description:
+          "Record a message in a bot's one-on-one chat so the user can read the conversation in the web app. Log what the user asked (from: user) and the bot's reply (from: bot).",
+        inputSchema: z.object({
+          botId,
+          from: z.enum(["user", "bot"]),
+          content: z.string().min(1).max(4000),
+        }),
+      },
+      async (args, ctx) => {
+        try {
+          const userId = getMcpUserId(ctx.http?.authInfo)
+          const result = await postDirectMessage(userId, args)
+
+          return result.success
+            ? text({ id: result.id })
+            : failure(new Error(result.error))
         } catch (error) {
           return failure(error)
         }

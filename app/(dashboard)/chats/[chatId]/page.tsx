@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 
 import { BotGuide } from "@/components/bot-guide"
 import { ChatHeader } from "@/components/chat-header"
+import { ChatTranscript } from "@/components/chat-transcript"
 import { VncPreview, VncProvider } from "@/components/vnc"
 import { ChatPanel, ChatPanelProvider } from "@/components/chat-panel"
 import {
@@ -10,7 +11,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
-import { getChat } from "@/queries/chats"
+import { getChat, getChatMessages } from "@/queries/chats"
 
 export default async function ChatPage({
   params,
@@ -18,7 +19,10 @@ export default async function ChatPage({
   await auth.protect()
 
   const { chatId } = await params
-  const chat = await getChat(chatId)
+  const [chat, messages] = await Promise.all([
+    getChat(chatId),
+    getChatMessages(chatId),
+  ])
 
   if (!chat) notFound()
 
@@ -32,7 +36,11 @@ export default async function ChatPage({
           <ResizablePanel minSize="30%" className="overflow-hidden">
             <div className="flex h-svh min-h-0 flex-col">
               <ChatHeader chat={chat} />
-              <BotGuide botId={chat.bots[0].id} name={chat.name} />
+              {messages.length > 0 ? (
+                <ChatTranscript messages={messages} bots={chat.bots} />
+              ) : (
+                <BotGuide botId={chat.bots[0].id} name={chat.name} />
+              )}
             </div>
           </ResizablePanel>
           <ResizableHandle />
