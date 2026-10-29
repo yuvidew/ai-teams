@@ -39,7 +39,7 @@ function ChatTranscript({
   bots: ChatBot[]
 }) {
   return (
-    <MessageScrollerProvider defaultScrollPosition="end">
+    <MessageScrollerProvider autoScroll defaultScrollPosition="end">
       <MessageScroller>
         <MessageScrollerViewport>
           <MessageScrollerContent className="mx-auto w-full max-w-3xl p-4">
