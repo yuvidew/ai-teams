@@ -1,20 +1,14 @@
 "use server"
 
 import { auth } from "@clerk/nextjs/server"
-import { and, count, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { nanoid } from "nanoid"
 
 import { db } from "@/db"
 import { bots, chatMembers, chats, insertBotSchema } from "@/db/schema"
+import { createBotForUser, type CreateBotResult } from "@/lib/create-bot"
 import { hasFeatures, UPGRADE_MESSAGE } from "@/lib/billing"
-import { PRO_LIMITS } from "@/lib/usage-limits"
-import { syncUsageAccount } from "@/lib/usage-sync"
-import { createBotSandbox, deleteBotSandbox } from "@/lib/daytona"
-
-type CreateBotResult =
-  | { success: true; id: string }
-  | { success: false; error: string; upgrade?: true; limit?: true }
+import { deleteBotSandbox } from "@/lib/daytona"
 
 export async function createBot(input: unknown): Promise<CreateBotResult> {
   const { userId } = await auth()
@@ -28,66 +22,11 @@ export async function createBot(input: unknown): Promise<CreateBotResult> {
     return { success: false, error: UPGRADE_MESSAGE, upgrade: true }
   }
 
-  // Every bot owns a sandbox, so the plan caps how many there can be.
-  await syncUsageAccount(userId)
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(bots)
-    .where(eq(bots.userId, userId))
+  const result = await createBotForUser(userId, input)
 
-  if (total >= PRO_LIMITS.bots) {
-    return {
-      success: false,
-      error: `Pro includes up to ${PRO_LIMITS.bots} bots. Delete one to create another.`,
-      limit: true,
-    }
-  }
+  if (result.success) revalidatePath("/")
 
-  const parsed = insertBotSchema.safeParse(input)
-
-  if (!parsed.success) {
-    return {
-      success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid bot.",
-    }
-  }
-
-  const { instructions, ...values } = parsed.data
-
-  // Ids are generated up front so the three inserts can reference each other
-  // inside a single batch (one round trip, executed atomically).
-  const botId = nanoid()
-  const chatId = nanoid()
-
-  let sandboxId: string
-  try {
-    sandboxId = await createBotSandbox(botId)
-  } catch (error) {
-    console.error("Failed to create sandbox", error)
-    return { success: false, error: "Could not create the bot's sandbox." }
-  }
-
-  try {
-    await db.batch([
-      db.insert(bots).values({
-        ...values,
-        id: botId,
-        instructions: instructions || null,
-        sandboxId,
-        userId,
-      }),
-      db.insert(chats).values({ id: chatId, userId, kind: "direct" }),
-      db.insert(chatMembers).values({ chatId, botId }),
-    ])
-  } catch (error) {
-    // Don't leave an orphaned sandbox behind.
-    await deleteBotSandbox(sandboxId).catch(() => {})
-    throw error
-  }
-
-  revalidatePath("/")
-
-  return { success: true, id: botId }
+  return result
 }
 
 type UpdateBotResult = { success: true } | { success: false; error: string }

@@ -65,18 +65,6 @@ export const chats = pgTable(
   (t) => [index("chats_user_id_idx").on(t.userId)]
 )
 
-// What the client may set when creating a group chat: a name and its members.
-// Everything else (`id`, `userId`, `kind`, timestamps) is filled in server-side.
-export const insertGroupChatSchema = createInsertSchema(chats, {
-  name: z.string().trim().min(1, "Name is required").max(50),
-})
-  .pick({ name: true })
-  .extend({
-    botIds: z.array(z.string()).min(2, "Pick at least two bots").max(10),
-  })
-
-export type InsertGroupChat = z.infer<typeof insertGroupChatSchema>
-
 export const chatMembers = pgTable(
   "chat_members",
   {
@@ -142,3 +130,10 @@ export const usageAccounts = pgTable("usage_accounts", {
 })
 
 export type UsageKind = (typeof usageKind.enumValues)[number]
+
+// A row exists once the user's AI tool (Claude Code, Codex, Cursor) has
+// connected to the MCP server. The app shows how to connect until then.
+export const mcpConnections = pgTable("mcp_connections", {
+  userId: text("user_id").primaryKey(), // Clerk user id
+  connectedAt: timestamp("connected_at").defaultNow().notNull(),
+})

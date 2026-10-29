@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server"
-import { asc, desc, eq } from "drizzle-orm"
+import { and, asc, desc, eq } from "drizzle-orm"
 
 import { db } from "@/db"
-import { bots, chats } from "@/db/schema"
+import { chats } from "@/db/schema"
 
 export type SidebarChat = {
   id: string
@@ -22,7 +22,7 @@ export async function getUserChats(): Promise<SidebarChat[]> {
   if (!userId) return []
 
   const rows = await db.query.chats.findMany({
-    where: eq(chats.userId, userId),
+    where: and(eq(chats.userId, userId), eq(chats.kind, "direct")),
     orderBy: desc(chats.lastMessageAt),
     with: {
       members: {
@@ -47,19 +47,4 @@ export async function getUserChats(): Promise<SidebarChat[]> {
       lastMessageAt: chat.lastMessageAt,
     }
   })
-}
-
-export type PickableBot = { id: string; name: string; avatar: string }
-
-// The signed-in user's bots, for picking group chat members.
-export async function getUserBots(): Promise<PickableBot[]> {
-  const { userId } = await auth()
-
-  if (!userId) return []
-
-  return db
-    .select({ id: bots.id, name: bots.name, avatar: bots.avatar })
-    .from(bots)
-    .where(eq(bots.userId, userId))
-    .orderBy(asc(bots.createdAt))
 }

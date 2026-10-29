@@ -3,14 +3,12 @@
 import * as React from "react"
 import { UserButton } from "@clerk/nextjs"
 import { formatDistanceToNowStrict } from "date-fns"
-import { GaugeIcon, PlusIcon, SearchIcon, UsersIcon } from "lucide-react"
+import { GaugeIcon, PlusIcon, SearchIcon } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 
 import { BotDialog } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
-import { GroupChatAvatar } from "@/components/group-chat-avatar"
-import { GroupChatDialog } from "@/components/group-chat-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -21,13 +19,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Kbd } from "@/components/ui/kbd"
 import {
   Sidebar,
@@ -46,7 +37,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import type { PickableBot, SidebarChat } from "@/queries/bots"
+import type { SidebarChat } from "@/queries/bots"
 
 const subscribeNothing = () => () => {}
 
@@ -64,17 +55,10 @@ function useModifierKey() {
 function ChatRow({ chat }: { chat: SidebarChat }) {
   return (
     <>
-      {chat.kind === "group" ? (
-        <GroupChatAvatar
-          seeds={chat.avatars}
-          className="size-8 group-data-[collapsible=icon]:size-6"
-        />
-      ) : (
-        <ChatAvatar
-          seed={chat.avatars[0]}
-          className="size-8 group-data-[collapsible=icon]:size-6"
-        />
-      )}
+      <ChatAvatar
+        seed={chat.avatars[0]}
+        className="size-8 group-data-[collapsible=icon]:size-6"
+      />
       <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
         <div className="flex items-baseline justify-between gap-2">
           <span className="truncate font-medium">{chat.name}</span>
@@ -96,16 +80,9 @@ function ChatRow({ chat }: { chat: SidebarChat }) {
   )
 }
 
-export function AppSidebar({
-  chats,
-  bots,
-}: {
-  chats: SidebarChat[]
-  bots: PickableBot[]
-}) {
+export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
   // The dialogs live here, outside the menu, so they survive it closing.
   const [botDialogOpen, setBotDialogOpen] = React.useState(false)
-  const [groupDialogOpen, setGroupDialogOpen] = React.useState(false)
   const [searchOpen, setSearchOpen] = React.useState(false)
   const modifierKey = useModifierKey()
   const router = useRouter()
@@ -130,47 +107,25 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Create"
-                      className="self-end aria-expanded:bg-transparent hover:aria-expanded:bg-muted"
-                    />
-                  }
-                />
-              }
-            >
-              <PlusIcon />
-            </TooltipTrigger>
-            <TooltipContent side="right" hidden={tooltipHidden}>
-              Create
-            </TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => setBotDialogOpen(true)}>
-                <PlusIcon />
-                Create new bot
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setGroupDialogOpen(true)}>
-                <UsersIcon />
-                Create group chat
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Create new bot"
+                onClick={() => setBotDialogOpen(true)}
+                className="self-end"
+              />
+            }
+          >
+            <PlusIcon />
+          </TooltipTrigger>
+          <TooltipContent side="right" hidden={tooltipHidden}>
+            Create new bot
+          </TooltipContent>
+        </Tooltip>
         <BotDialog open={botDialogOpen} onOpenChange={setBotDialogOpen} />
-        <GroupChatDialog
-          bots={bots}
-          open={groupDialogOpen}
-          onOpenChange={setGroupDialogOpen}
-        />
         <Tooltip>
           <TooltipTrigger
             render={
