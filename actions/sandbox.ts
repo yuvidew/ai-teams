@@ -5,30 +5,20 @@ import { eq } from "drizzle-orm"
 
 import { db } from "@/db"
 import { bots } from "@/db/schema"
-import { hasFeatures, UPGRADE_MESSAGE } from "@/lib/billing"
 import { getSandboxVncUrl, refreshSandboxActivity } from "@/lib/daytona"
-import { UsageLimitError, chargeSandbox } from "@/lib/usage"
-import { syncUsageAccount } from "@/lib/usage-sync"
 import { getChat } from "@/queries/chats"
 
-type Failure = { success: false; error: string; upgrade?: true; limit?: true }
+type Failure = { success: false; error: string }
 type VncResult = { success: true; url: string } | Failure
 type HeartbeatResult = { success: true } | Failure
 
-/**
- * Checks the plan and allowance and bills the chat bot's sandbox for the time
- * it is about to run. Returns the sandbox id to use.
- */
-async function chargeChatSandbox(
+/** Finds the sandbox id of the signed-in user's direct chat bot. */
+async function getChatSandboxId(
   chatId: string
 ): Promise<{ success: true; sandboxId: string } | Failure> {
   const { userId } = await auth()
 
   if (!userId) return { success: false, error: "You must be signed in." }
-
-  if (!(await hasFeatures("sandboxes"))) {
-    return { success: false, error: UPGRADE_MESSAGE, upgrade: true }
-  }
 
   // getChat is scoped to the signed-in user, so this doubles as the auth check.
   const chat = await getChat(chatId)
@@ -50,46 +40,33 @@ async function chargeChatSandbox(
     return { success: false, error: "This bot has no sandbox." }
   }
 
-  try {
-    await syncUsageAccount(userId)
-    await chargeSandbox(userId, botId, chatId)
-  } catch (error) {
-    if (error instanceof UsageLimitError) {
-      return { success: false, error: error.message, limit: true }
-    }
-    throw error
-  }
-
   return { success: true, sandboxId: bot.sandboxId }
 }
 
 /** Starts the chat bot's desktop and returns the URL of its VNC session. */
 export async function getChatVncUrl(chatId: string): Promise<VncResult> {
-  const charged = await chargeChatSandbox(chatId)
+  const found = await getChatSandboxId(chatId)
 
-  if (!charged.success) return charged
+  if (!found.success) return found
 
   try {
-    return { success: true, url: await getSandboxVncUrl(charged.sandboxId) }
+    return { success: true, url: await getSandboxVncUrl(found.sandboxId) }
   } catch (error) {
     console.error("Failed to start VNC", error)
     return { success: false, error: "Could not start the sandbox's screen." }
   }
 }
 
-/**
- * Called while the screen is open: keeps the sandbox awake and bills the time,
- * or reports that the allowance ran out so the screen can be closed.
- */
+/** Called while the screen is open: keeps the sandbox awake. */
 export async function keepSandboxAlive(
   chatId: string
 ): Promise<HeartbeatResult> {
-  const charged = await chargeChatSandbox(chatId)
+  const found = await getChatSandboxId(chatId)
 
-  if (!charged.success) return charged
+  if (!found.success) return found
 
   try {
-    await refreshSandboxActivity(charged.sandboxId)
+    await refreshSandboxActivity(found.sandboxId)
     return { success: true }
   } catch (error) {
     console.error("Failed to refresh sandbox", error)

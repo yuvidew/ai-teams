@@ -1,45 +1,38 @@
 import { UserButton } from "@clerk/nextjs"
 import { auth } from "@clerk/nextjs/server"
-import { PlusIcon } from "lucide-react"
-import { nanoid } from "nanoid"
 
-import { BotDialog } from "@/components/bot-dialog"
-import { ChatAvatar } from "@/components/chat-avatar"
-import { Button } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty"
+import { ConnectShowcase } from "@/components/connect-showcase"
+import { ConnectTabs, EXAMPLE_PROMPT } from "@/components/connect-tabs"
+import { CopyBlock } from "@/components/copy-block"
+import { getMcpUrl } from "@/lib/mcp-url"
 
 export default async function Page() {
   await auth.protect()
+
+  const mcpUrl = await getMcpUrl()
 
   return (
     <div className="relative flex min-h-svh flex-col">
       <div className="absolute top-4 right-4">
         <UserButton />
       </div>
-      <Empty>
-        <EmptyHeader>
-          <ChatAvatar seed={nanoid()} className="mb-2" />
-          <EmptyTitle>Meet your first bot</EmptyTitle>
-          <EmptyDescription>
-            Every bot gets its own personality, memory, and face. Spin one up
-            and start the conversation.
-          </EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <BotDialog>
-            <Button variant="secondary">
-              <PlusIcon data-icon="inline-start" />
-              Create a new bot
-            </Button>
-          </BotDialog>
-        </EmptyContent>
-      </Empty>
+      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-8 px-4 py-16">
+        <ConnectShowcase />
+
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-base font-medium">Connect your AI tool</h1>
+            <p className="text-sm text-muted-foreground">
+              Pick your tool and add AI Teams to it as an MCP server.
+            </p>
+          </div>
+          <ConnectTabs mcpUrl={mcpUrl} />
+          <CopyBlock
+            label="3. Then try it: ask your AI tool to create a bot and give it a task"
+            value={EXAMPLE_PROMPT}
+          />
+        </section>
+      </div>
     </div>
   )
 }

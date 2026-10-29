@@ -3,11 +3,10 @@
 import * as React from "react"
 import { UserButton } from "@clerk/nextjs"
 import { formatDistanceToNowStrict } from "date-fns"
-import { GaugeIcon, PlusIcon, SearchIcon } from "lucide-react"
+import { SearchIcon } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 
-import { BotDialog } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -81,8 +80,6 @@ function ChatRow({ chat }: { chat: SidebarChat }) {
 }
 
 export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
-  // The dialogs live here, outside the menu, so they survive it closing.
-  const [botDialogOpen, setBotDialogOpen] = React.useState(false)
   const [searchOpen, setSearchOpen] = React.useState(false)
   const modifierKey = useModifierKey()
   const router = useRouter()
@@ -107,25 +104,7 @@ export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Create new bot"
-                onClick={() => setBotDialogOpen(true)}
-                className="self-end"
-              />
-            }
-          >
-            <PlusIcon />
-          </TooltipTrigger>
-          <TooltipContent side="right" hidden={tooltipHidden}>
-            Create new bot
-          </TooltipContent>
-        </Tooltip>
-        <BotDialog open={botDialogOpen} onOpenChange={setBotDialogOpen} />
+        {/*  */}
         <Tooltip>
           <TooltipTrigger
             render={
@@ -218,15 +197,7 @@ export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
                     userButtonAvatarImage: "size-6!",
                   },
                 }}
-              >
-                <UserButton.MenuItems>
-                  <UserButton.Link
-                    label="Usage"
-                    labelIcon={<GaugeIcon className="size-4" />}
-                    href="/usage"
-                  />
-                </UserButton.MenuItems>
-              </UserButton>
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

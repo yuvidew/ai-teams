@@ -12,8 +12,7 @@ import { Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react"
 
 import { getChatVncUrl, keepSandboxAlive } from "@/actions/sandbox"
 import { Button } from "@/components/ui/button"
-import { useUpgradeToast } from "@/components/upgrade-toast"
-import { SANDBOX_AUTO_STOP_MINUTES } from "@/lib/usage-limits"
+import { SANDBOX_AUTO_STOP_MINUTES } from "@/lib/daytona"
 import {
   Dialog,
   DialogClose,
@@ -62,7 +61,6 @@ function VncProvider({
   const [dialogSlot, setDialogSlot] = useState<HTMLElement | null>(null)
   const [attempt, setAttempt] = useState(0)
   const frameRef = useRef<HTMLIFrameElement>(null)
-  const showUpgrade = useUpgradeToast()
 
   useEffect(() => {
     let cancelled = false
@@ -70,8 +68,6 @@ function VncProvider({
     getChatVncUrl(chatId)
       .then((result) => {
         if (cancelled) return
-        if (!result.success && result.upgrade) showUpgrade(result.error)
-        if (!result.success && result.limit) showUpgrade(result.error, "/usage")
         setState(
           result.success
             ? { status: "ready", url: result.url }
@@ -87,10 +83,9 @@ function VncProvider({
     return () => {
       cancelled = true
     }
-  }, [chatId, attempt, showUpgrade])
+  }, [chatId, attempt])
 
-  // While the screen is open the sandbox is in use: keep it awake and bill it.
-  // If the allowance runs out, close the screen.
+  // While the screen is open the sandbox is in use: keep it awake.
   const ready = state.status === "ready"
   useEffect(() => {
     if (!ready) return
@@ -100,21 +95,13 @@ function VncProvider({
         if (document.visibilityState !== "visible") return
 
         keepSandboxAlive(chatId)
-          .then((result) => {
-            if (result.success) return
-            if (result.limit) showUpgrade(result.error, "/usage")
-            if (result.upgrade) showUpgrade(result.error)
-            if (result.limit || result.upgrade) {
-              setState({ status: "error", error: result.error })
-            }
-          })
           .catch(() => {})
       },
       (SANDBOX_AUTO_STOP_MINUTES - 1) * 60 * 1000
     )
 
     return () => clearInterval(timer)
-  }, [ready, chatId, showUpgrade])
+  }, [ready, chatId])
 
   const reload = useCallback(() => {
     setState({ status: "loading" })

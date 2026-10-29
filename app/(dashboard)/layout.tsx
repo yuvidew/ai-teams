@@ -1,10 +1,11 @@
 import { auth } from "@clerk/nextjs/server"
-import { cookies, headers } from "next/headers"
+import { cookies } from "next/headers"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { ConnectDialog } from "@/components/connect-dialog"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { hasConnected } from "@/lib/mcp-connection"
+import { getMcpUrl } from "@/lib/mcp-url"
 import { getUserChats } from "@/queries/bots"
 
 export default async function DashboardLayout({
@@ -23,18 +24,7 @@ export default async function DashboardLayout({
 
   // Bots are answered by the user's own AI tool, so until one has connected the
   // app opens with a dialog on how to connect it. Once connected, no dialog.
-  let mcpUrl: string | null = null
-
-  if (!connected) {
-    const requestHeaders = await headers()
-    const host =
-      requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")
-    const protocol =
-      requestHeaders.get("x-forwarded-proto") ??
-      (host?.startsWith("localhost") ? "http" : "https")
-
-    mcpUrl = `${protocol}://${host}/api/mcp`
-  }
+  const mcpUrl = connected ? null : await getMcpUrl()
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>

@@ -1,4 +1,3 @@
-import { BotDialog } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { ChatPanelToggle } from "@/components/chat-panel-toggle"
 import type { ChatDetail } from "@/queries/chats"
@@ -8,15 +7,10 @@ function ChatHeader({ chat }: { chat: ChatDetail }) {
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
-      <BotDialog bot={bot}>
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <ChatAvatar seed={bot.avatar} className="size-8" />
-          <span className="truncate text-sm font-medium">{bot.name}</span>
-        </button>
-      </BotDialog>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <ChatAvatar seed={bot.avatar} className="size-8" />
+        <span className="truncate text-sm font-medium">{bot.name}</span>
+      </div>
       <ChatPanelToggle />
     </header>
   )

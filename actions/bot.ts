@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/db"
 import { bots, chatMembers, chats, insertBotSchema } from "@/db/schema"
 import { createBotForUser, type CreateBotResult } from "@/lib/create-bot"
-import { hasFeatures, UPGRADE_MESSAGE } from "@/lib/billing"
 import { deleteBotSandbox } from "@/lib/daytona"
 
 export async function createBot(input: unknown): Promise<CreateBotResult> {
@@ -15,11 +14,6 @@ export async function createBot(input: unknown): Promise<CreateBotResult> {
 
   if (!userId) {
     return { success: false, error: "You must be signed in to create a bot." }
-  }
-
-  // A bot comes with its own sandbox, so it needs both features.
-  if (!(await hasFeatures("bots", "sandboxes"))) {
-    return { success: false, error: UPGRADE_MESSAGE, upgrade: true }
   }
 
   const result = await createBotForUser(userId, input)
