@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server"
 import { cookies } from "next/headers"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { ChatLiveRefresh } from "@/components/chat-live-refresh"
 import { ConnectDialog } from "@/components/connect-dialog"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { hasConnected } from "@/lib/mcp-connection"
@@ -29,7 +30,10 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar chats={chats} />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <ChatLiveRefresh />
+        {children}
+      </SidebarInset>
       {mcpUrl && <ConnectDialog mcpUrl={mcpUrl} />}
     </SidebarProvider>
   )

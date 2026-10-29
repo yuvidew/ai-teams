@@ -3,7 +3,6 @@ import { notFound } from "next/navigation"
 
 import { BotGuide } from "@/components/bot-guide"
 import { ChatHeader } from "@/components/chat-header"
-import { ChatLiveRefresh } from "@/components/chat-live-refresh"
 import { ChatTranscript } from "@/components/chat-transcript"
 import { VncPreview, VncProvider } from "@/components/vnc"
 import { ChatPanel, ChatPanelProvider } from "@/components/chat-panel"
@@ -29,7 +28,6 @@ export default async function ChatPage({
 
   return (
     <ChatPanelProvider>
-      <ChatLiveRefresh />
       <VncProvider chatId={chat.id}>
         <ResizablePanelGroup
           orientation="horizontal"
