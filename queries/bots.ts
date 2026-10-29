@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server"
-import { and, asc, desc, eq } from "drizzle-orm"
+import { asc, desc, eq } from "drizzle-orm"
 
 import { db } from "@/db"
 import { chats } from "@/db/schema"
@@ -22,7 +22,7 @@ export async function getUserChats(): Promise<SidebarChat[]> {
   if (!userId) return []
 
   const rows = await db.query.chats.findMany({
-    where: and(eq(chats.userId, userId), eq(chats.kind, "direct")),
+    where: eq(chats.userId, userId),
     orderBy: desc(chats.lastMessageAt),
     with: {
       members: {
