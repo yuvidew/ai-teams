@@ -12,7 +12,7 @@ import { Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react"
 
 import { getChatVncUrl, keepSandboxAlive } from "@/actions/sandbox"
 import { Button } from "@/components/ui/button"
-import { SANDBOX_AUTO_STOP_MINUTES } from "@/lib/daytona"
+import { SANDBOX_AUTO_STOP_MINUTES } from "@/lib/sandbox-config"
 import {
   Dialog,
   DialogClose,

@@ -104,7 +104,16 @@ export function AppSidebar({ chats }: { chats: SidebarChat[] }) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        {/*  */}
+        <Link
+          href="/"
+          aria-label="AI Teams home"
+          className="flex h-10 items-center gap-2 rounded-md px-1 outline-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <ChatAvatar seed="ai-teams" className="size-8" />
+          <span className="truncate text-base font-semibold group-data-[collapsible=icon]:hidden">
+            AI Teams
+          </span>
+        </Link>
         <Tooltip>
           <TooltipTrigger
             render={

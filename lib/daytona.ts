@@ -1,9 +1,7 @@
 import { Daytona, type Sandbox } from "@daytona/sdk"
 
 import { MEMORY_FILE } from "@/lib/bot-prompt"
-
-/** Daytona stops an idle sandbox after this long. */
-export const SANDBOX_AUTO_STOP_MINUTES = 5
+import { SANDBOX_AUTO_STOP_MINUTES } from "@/lib/sandbox-config"
 
 // The endpoint and key are passed explicitly: when DAYTONA_API_URL comes from
 // both a .env file and the process environment (as in the Trigger.dev dev
