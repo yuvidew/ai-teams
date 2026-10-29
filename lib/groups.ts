@@ -183,7 +183,7 @@ export async function postGroupMessage(
 export async function postDirectMessage(
   userId: string,
   input: { botId: string; from: "user" | "bot"; content: string }
-): Promise<Result<{ id: string }>> {
+): Promise<Result<{ id: string; chatId: string }>> {
   const content = input.content.trim()
 
   if (!content) return { success: false, error: "Message is empty." }
@@ -226,7 +226,7 @@ export async function postDirectMessage(
       .where(eq(chats.id, membership.chatId)),
   ])
 
-  return { success: true, id }
+  return { success: true, id, chatId: membership.chatId }
 }
 
 export type GroupMessage = {

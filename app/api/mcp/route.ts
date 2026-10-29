@@ -16,6 +16,7 @@ import {
   readGroupMessages,
 } from "@/lib/groups"
 import { getMcpUserId, verifyMcpToken } from "@/lib/mcp-auth"
+import { getChatUrl } from "@/lib/mcp-url"
 import { getBotSandboxTools, getOwnedBot } from "@/lib/mcp-sandbox"
 import { createSandboxTools } from "@/lib/sandbox-tools"
 
@@ -82,7 +83,7 @@ const handler = createMcpHandler(
           if (!bot) return failure(new Error("Bot not found."))
 
           return text(
-            `${buildBotSystemPrompt(bot)}\n\n## Using the tools here\nYour botId is ${bot.id}. Pass it as botId to bash, readFile, writeFile, listFiles, mouseClick, mouseMove, mouseScroll, keyboardType, keyboardPress, viewScreen and showScreen. Both screenshot tools return the picture to you. If you are working in a group, use get_group to see your teammates and post_group_message to talk to them. After each task, call log_chat_message to record what the user asked and your reply, so they can read it in the web app.`
+            `${buildBotSystemPrompt(bot)}\n\n## Using the tools here\nYour botId is ${bot.id}. Pass it as botId to bash, readFile, writeFile, listFiles, mouseClick, mouseMove, mouseScroll, keyboardType, keyboardPress, viewScreen and showScreen. Both screenshot tools return the picture to you. If you are working in a group, use get_group to see your teammates and post_group_message to talk to them. When the task is done, call log_chat_message to record what the user asked and your reply, then end your final message to the user with the chat link it returns, so they can open the conversation in the web app.`
           )
         } catch (error) {
           return failure(error)
@@ -108,7 +109,8 @@ const handler = createMcpHandler(
           return text({
             id: result.id,
             name: args.name,
-            next: `Call get_bot with botId ${result.id} to take on its role, then use the sandbox tools with that botId.`,
+            chatUrl: await getChatUrl(result.chatId),
+            next: `Call get_bot with botId ${result.id} to take on its role, then use the sandbox tools with that botId. When done, log the conversation with log_chat_message and give the user the chat link.`,
           })
         } catch (error) {
           return failure(error)
@@ -121,7 +123,7 @@ const handler = createMcpHandler(
       {
         title: "Log chat message",
         description:
-          "Record a message in a bot's one-on-one chat so the user can read the conversation in the web app. Log what the user asked (from: user) and the bot's reply (from: bot).",
+          "Record a message in a bot's one-on-one chat so the user can read the conversation in the web app. Log what the user asked (from: user) and the bot's reply (from: bot). Returns chatUrl: when the task is complete, give the user that link so they can open the conversation.",
         inputSchema: z.object({
           botId,
           from: z.enum(["user", "bot"]),
@@ -134,7 +136,10 @@ const handler = createMcpHandler(
           const result = await postDirectMessage(userId, args)
 
           return result.success
-            ? text({ id: result.id })
+            ? text({
+                id: result.id,
+                chatUrl: await getChatUrl(result.chatId),
+              })
             : failure(new Error(result.error))
         } catch (error) {
           return failure(error)
@@ -165,7 +170,8 @@ const handler = createMcpHandler(
 
           return text({
             id: result.id,
-            next: `Call get_group with groupId ${result.id} to see the team and start the task.`,
+            chatUrl: await getChatUrl(result.id),
+            next: `Call get_group with groupId ${result.id} to see the team and start the task. When the task is done, post a final summary with post_group_message and give the user the chat link.`,
           })
         } catch (error) {
           return failure(error)
@@ -233,7 +239,7 @@ const handler = createMcpHandler(
             .join("\n")
 
           return text(
-            `# Group: ${group.name}\n\n## Members\n${roster}\n\n## How to work together\nYou play every bot in this group, one turn at a time. The bots share one conversation (post_group_message / read_group_messages) but each has its own private sandbox, so a bot cannot use another's files: pass results by writing them in a message.\n1. Break the task into parts that fit each bot's job.\n2. For each part, call get_bot for that bot, do its work with its sandbox tools (using its botId), then call post_group_message as that bot with what it did, mentioning the bot that should go next.\n3. Before a bot starts, call read_group_messages so it builds on what the others posted.\n4. When the task is complete, post a final message summarizing the outcome, then tell the user.\n\n## Recent messages\n${JSON.stringify(history.success ? history.messages : [], null, 2)}`
+            `# Group: ${group.name}\n\n## Members\n${roster}\n\n## How to work together\nYou play every bot in this group, one turn at a time. The bots share one conversation (post_group_message / read_group_messages) but each has its own private sandbox, so a bot cannot use another's files: pass results by writing them in a message.\n1. Break the task into parts that fit each bot's job.\n2. For each part, call get_bot for that bot, do its work with its sandbox tools (using its botId), then call post_group_message as that bot with what it did, mentioning the bot that should go next.\n3. Before a bot starts, call read_group_messages so it builds on what the others posted.\n4. When the task is complete, post a final message summarizing the outcome, then tell the user and give them the chat link: ${await getChatUrl(group.id)}\n\n## Recent messages\n${JSON.stringify(history.success ? history.messages : [], null, 2)}`
           )
         } catch (error) {
           return failure(error)
@@ -246,7 +252,7 @@ const handler = createMcpHandler(
       {
         title: "Post group message",
         description:
-          "Post a message to a group as one of its bots. Use it to share progress, results or a request for another bot. Mention bots by exact name to hand work to them.",
+          "Post a message to a group as one of its bots. Use it to share progress, results or a request for another bot. Mention bots by exact name to hand work to them. Returns chatUrl: when the whole task is complete, give the user that link.",
         inputSchema: z.object({
           groupId,
           botId: botId.describe("The bot sending the message"),
@@ -263,7 +269,10 @@ const handler = createMcpHandler(
           const result = await postGroupMessage(userId, args)
 
           return result.success
-            ? text({ id: result.id })
+            ? text({
+                id: result.id,
+                chatUrl: await getChatUrl(args.groupId),
+              })
             : failure(new Error(result.error))
         } catch (error) {
           return failure(error)

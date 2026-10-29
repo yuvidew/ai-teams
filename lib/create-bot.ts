@@ -5,7 +5,7 @@ import { bots, chatMembers, chats, insertBotSchema } from "@/db/schema"
 import { createBotSandbox, deleteBotSandbox } from "@/lib/daytona"
 
 export type CreateBotResult =
-  | { success: true; id: string }
+  | { success: true; id: string; chatId: string }
   | { success: false; error: string }
 
 /**
@@ -58,5 +58,5 @@ export async function createBotForUser(
     throw error
   }
 
-  return { success: true, id: botId }
+  return { success: true, id: botId, chatId }
 }
