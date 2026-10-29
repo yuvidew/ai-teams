@@ -106,7 +106,7 @@ const handler = createMcpHandler(
           if (!bot) return failure(new Error("Bot not found."))
 
           return text(
-            `${buildBotSystemPrompt(bot)}\n\n## Using the tools here\nYour botId is ${bot.id}. Pass it as botId to bash, readFile, writeFile, listFiles, mouseClick, mouseMove, mouseScroll, keyboardType, keyboardPress, viewScreen and showScreen. Both screenshot tools return the picture to you. If you are working in a group, use get_group to see your teammates and post_group_message to talk to them. If the task needs one of the user's other apps (Gmail, Slack, Notion, ...), call list_connected_apps, and if it is missing call connect_app, show the user the link and call wait_for_app_connection, then use list_app_tools, get_app_tool and run_app_tool. When the task is done, call log_chat_message to record what the user asked and your reply, then end your final message to the user with the chat link it returns, so they can open the conversation in the web app.`
+            `${buildBotSystemPrompt(bot)}\n\n## Using the tools here\nYour botId is ${bot.id}. Pass it as botId to bash, readFile, writeFile, listFiles, mouseClick, mouseMove, mouseScroll, keyboardType, keyboardPress, viewScreen and showScreen. Both screenshot tools return the picture to you. If you are working in a group, use get_group to see your teammates and post_group_message to talk to them. If the task needs one of the user's other apps (Gmail, Slack, Notion, ...), call list_connected_apps, and if it is missing call connect_app, show the user the link and call wait_for_app_connection, then use list_app_tools, get_app_tool and run_app_tool. When the task is done, call log_chat_message to record the task the user wants done (only the task, not the "use the bot ..." part of their message) and your reply, then end your final message to the user with the chat link it returns, so they can open the conversation in the web app.`
           )
         } catch (error) {
           return failure(error)
@@ -146,7 +146,7 @@ const handler = createMcpHandler(
       {
         title: "Log chat message",
         description:
-          "Record a message in a bot's one-on-one chat so the user can read the conversation in the web app. Log what the user asked (from: user) and the bot's reply (from: bot). Returns chatUrl: when the task is complete, give the user that link so they can open the conversation.",
+          "Record a message in a bot's one-on-one chat so the user can read the conversation in the web app. Log only the task itself as the user's request (from: user), phrased as if the user had said it to the bot directly (for example 'Send a hello message'), never the routing words like 'use the ai-teams bot X'. Then log the bot's reply (from: bot). Returns chatUrl: when the task is complete, give the user that link so they can open the conversation.",
         inputSchema: z.object({
           botId,
           from: z.enum(["user", "bot"]),
