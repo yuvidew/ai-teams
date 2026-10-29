@@ -262,7 +262,7 @@ const handler = createMcpHandler(
             .join("\n")
 
           return text(
-            `# Group: ${group.name}\n\n## Members\n${roster}\n\n## How to work together\nYou play every bot in this group, one turn at a time. The bots share one conversation (post_group_message / read_group_messages) but each has its own private sandbox, so a bot cannot use another's files: pass results by writing them in a message.\n1. Break the task into parts that fit each bot's job.\n2. For each part, call get_bot for that bot, do its work with its sandbox tools (using its botId), then call post_group_message as that bot with what it did, mentioning the bot that should go next.\n3. Before a bot starts, call read_group_messages so it builds on what the others posted.\n4. When the task is complete, post a final message summarizing the outcome, then tell the user and give them the chat link: ${await getChatUrl(group.id)}\n\n## Recent messages\n${JSON.stringify(history.success ? history.messages : [], null, 2)}`
+            `# Group: ${group.name}\n\n## Members\n${roster}\n\n## How to work together\nYou play every bot in this group, one turn at a time. The bots share one conversation (post_group_message / read_group_messages) but each has its own private sandbox, so a bot cannot use another's files: pass results by writing them in a message.\n1. Break the task into parts that fit each bot's job.\n2. First, post the user's request to this group with post_group_message and no botId, so it shows as the user's message in the group chat (just the task, without 'use the ai-teams bot ...' wrapper words). Never log the whole request into a single bot's one-on-one chat. Then call log_chat_message (from: user) with the first bot's botId and only its own part of the task, e.g. 'Research the Ramayana'. Posts from a bot, and messages that mention another bot, are copied into those bots' one-on-one chats automatically, so do not log those yourself. For each part, call get_bot for that bot, do its work with its sandbox tools (using its botId), then call post_group_message as that bot with what it did, mentioning the bot that should go next.\n3. Before a bot starts, call read_group_messages so it builds on what the others posted.\n4. When the task is complete, post a final message summarizing the outcome, then tell the user and give them the chat link: ${await getChatUrl(group.id)}\n\n## Recent messages\n${JSON.stringify(history.success ? history.messages : [], null, 2)}`
           )
         } catch (error) {
           return failure(error)
@@ -278,7 +278,11 @@ const handler = createMcpHandler(
           "Post a message to a group as one of its bots. Use it to share progress, results or a request for another bot. Mention bots by exact name to hand work to them. Returns chatUrl: when the whole task is complete, give the user that link.",
         inputSchema: z.object({
           groupId,
-          botId: botId.describe("The bot sending the message"),
+          botId: botId
+            .optional()
+            .describe(
+              "The bot sending the message; omit to post the user's own message"
+            ),
           content: z.string().min(1).max(4000),
           mentions: z
             .array(z.string())

@@ -156,6 +156,40 @@ export async function postGroupMessage(
   const id = nanoid()
   const sender = group.bots.find((bot) => bot.id === input.botId)?.name
 
+  // Each bot's one-on-one chat shows its own part of the work: what the bot
+  // posted is its reply, and a message addressed to it is its task.
+  const recipients = group.bots.filter(
+    (bot) => bot.id !== input.botId && mentions.includes(bot.name)
+  )
+  const mirrors = input.botId
+    ? [
+        { botId: input.botId, fromBot: true },
+        ...recipients.map((bot) => ({ botId: bot.id, fromBot: false })),
+      ]
+    : []
+  const directChats = mirrors.length
+    ? await db
+        .select({ botId: chatMembers.botId, chatId: chats.id })
+        .from(chatMembers)
+        .innerJoin(chats, eq(chats.id, chatMembers.chatId))
+        .where(
+          and(
+            inArray(
+              chatMembers.botId,
+              mirrors.map((mirror) => mirror.botId)
+            ),
+            eq(chats.userId, userId),
+            eq(chats.kind, "direct")
+          )
+        )
+    : []
+  const now = new Date()
+  const mirrored = mirrors.flatMap((mirror) => {
+    const direct = directChats.find((chat) => chat.botId === mirror.botId)
+
+    return direct ? [{ ...mirror, chatId: direct.chatId }] : []
+  })
+
   await db.batch([
     db.insert(chatMessages).values({
       id,
@@ -168,9 +202,20 @@ export async function postGroupMessage(
       .update(chats)
       .set({
         lastMessagePreview: `${sender ?? "You"}: ${content}`.slice(0, 120),
-        lastMessageAt: new Date(),
+        lastMessageAt: now,
       })
       .where(eq(chats.id, group.id)),
+    ...mirrored.flatMap((mirror) => [
+      db.insert(chatMessages).values({
+        chatId: mirror.chatId,
+        botId: mirror.fromBot ? mirror.botId : null,
+        content,
+      }),
+      db
+        .update(chats)
+        .set({ lastMessagePreview: content.slice(0, 120), lastMessageAt: now })
+        .where(eq(chats.id, mirror.chatId)),
+    ]),
   ])
 
   return { success: true, id }
