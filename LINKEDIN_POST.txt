@@ -1,0 +1,43 @@
+🚀 I built AI Teams: AI bots that work on real Linux desktops, controlled from the AI tool you already use.
+
+Tell Claude Code: "Create a bot called Ada, open Chromium in its sandbox and research this topic."
+
+Ada gets her own private cloud computer, opens the browser, clicks, types, takes screenshots, and logs everything in a chat. You can watch her screen live 🖥️
+
+The twist: my app makes zero AI calls. Your AI tool (Claude Code, Codex or Cursor) is the brain. My app is the body: sandbox, memory, apps and dashboard.
+
+✨ WHAT IT DOES
+• 27 MCP tools any MCP-capable AI tool can call
+• Private Linux desktop per bot (Daytona) with live view
+• Group chats: bots @mention each other and hand off work
+• Acts in Gmail, Slack, Notion via Pipedream
+• Per-bot memory file
+• Clerk OAuth for the web app and MCP
+
+🧱 STACK
+Next.js 16, React 19, TypeScript, Tailwind 4, Clerk, Neon Postgres, Drizzle, MCP, Daytona, Pipedream, Sentry, Vercel
+
+🐛 PROBLEMS I FACED
+My own code review found 11 problem areas. Fixed while building:
+
+1. Daytona SDK leaking into the client bundle → moved sandbox code to server-only modules
+2. Upload crashing in Next's server bundle → switched to a plain shell command
+3. Half-created bots (sandbox made, DB insert failed) → cleanup on failure + one atomic batch insert
+4. Pipedream hiding the connect link → check the account first, so users always get the sign-in link
+5. Noisy chat logs → only the bare message is logged
+6. Group work invisible in each bot's chat → messages now mirror automatically
+7. Groups missing from the sidebar → query fixed
+8. Chat not updating live → added live refresh
+9. VNC screen reloading on every move → one floating iframe
+10. Over-built architecture → dropped my first chat agent and billing, went MCP-only
+
+Still on my list: group chat header, stale sandbox after idle stop, delete-bot tool, unused packages.
+
+Building in public means showing the bugs too 😄
+
+🌐 Live demo: <LIVE_DEMO_URL>
+💻 GitHub (open source, stars and PRs welcome): https://github.com/yuvidew/ai-teams
+
+What should the bots learn to do next? 👇
+
+#AI #MCP #AIAgents #NextJS #TypeScript #BuildInPublic #OpenSource #ClaudeCode

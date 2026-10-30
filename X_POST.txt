@@ -1,0 +1,32 @@
+POST 1 (main)
+🔥 AI Teams is open source!
+
+Tell Claude Code, Codex or Cursor to create a bot. It gets its own Linux desktop and you can watch it live 👀
+
+27 MCP tools · group chats · Gmail/Slack/Notion
+
+🌐 <LIVE_DEMO_URL>
+💻 https://github.com/yuvidew/ai-teams
+
+#OpenSource #MCP
+
+POST 2 (reply)
+How it works: the app makes zero AI calls. Your AI tool is the brain. The app gives each bot a sandbox, memory, chat history and access to your apps.
+
+Stack: Next.js 16, Clerk, Neon, Drizzle, Daytona, Pipedream.
+
+POST 3 (reply)
+Problems I hit and fixed 🐛
+• Daytona SDK leaking into the browser bundle
+• Pipedream connect link vanishing
+• Half-created bots when an insert failed
+• Group chats missing from the sidebar
+• Chat not updating live
+
+11 problem areas found in total.
+
+POST 4 (reply)
+Still on my list: group chat header, stale sandbox after idle stop, a delete-bot tool, and unused packages.
+
+It's open source, so issues and PRs are welcome 🙌
+https://github.com/yuvidew/ai-teams
